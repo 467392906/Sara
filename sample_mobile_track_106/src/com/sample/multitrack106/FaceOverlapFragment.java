@@ -76,7 +76,8 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 
 		if (tracker == null) {
 			long start_init = System.currentTimeMillis();
-			tracker = new STMobileMultiTrack106(getActivity());
+			int config = 0; //default config
+			tracker = new STMobileMultiTrack106(getActivity(), config);
 			int max = 40;
 			tracker.setMaxDetectableFaces(max);
 			long end_init = System.currentTimeMillis();

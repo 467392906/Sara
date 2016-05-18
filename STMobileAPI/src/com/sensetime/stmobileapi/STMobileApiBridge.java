@@ -123,7 +123,7 @@ public interface STMobileApiBridge extends Library {
     STMobileApiBridge FACESDK_INSTANCE = (STMobileApiBridge) Native.loadLibrary("st_mobile", STMobileApiBridge.class);
 
     //cv_mobile_face_106
-    int st_mobile_tracker_106_create(String model_path, PointerByReference handle);
+    int st_mobile_tracker_106_create(String model_path, int config, PointerByReference handle);
     
     int st_mobile_tracker_106_set_facelimit(Pointer handle,int max_facecount);
     

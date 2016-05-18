@@ -3,5 +3,6 @@
 
     <string name="app_name">track106</string>
     <string name="action_settings">Settings</string>
+    <string name="checkinfo">Detect</string>
 
 </resources>

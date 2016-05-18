@@ -21,6 +21,9 @@ public class STMobileMultiTrack106 {
     private static final int FACE_KEY_POINTS_COUNT = 106;
     static boolean DEBUG = true;// false;
     
+    private int ST_MOBILE_TRACKING_DEFAULT_CONFIG = 0x00000000;
+    private int ST_MOBILE_TRACKING_SINGLE_THREAD = 0x00000001;
+    
 	private Context mContext;
 	private static final String BEAUTIFY_MODEL_NAME = "track.tar";
       
@@ -38,7 +41,7 @@ public class STMobileMultiTrack106 {
         second:setMaxDetectableFaces(num)参数设为-1
      */
      
-    public STMobileMultiTrack106(Context context) {
+    public STMobileMultiTrack106(Context context, int config) {
         PointerByReference handlerPointer = new PointerByReference();
 		mContext = context;
 		synchronized(this.getClass())
@@ -46,7 +49,7 @@ public class STMobileMultiTrack106 {
 		   copyModelIfNeed(BEAUTIFY_MODEL_NAME);
 		}
 		String modulePath = getModelPath(BEAUTIFY_MODEL_NAME);
-    	int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_create(modulePath, handlerPointer);
+    	int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_create(modulePath, config, handlerPointer);
     	trackHandle = handlerPointer.getValue();
     }
     

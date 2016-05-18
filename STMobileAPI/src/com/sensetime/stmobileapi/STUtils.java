@@ -163,9 +163,8 @@ public class STUtils {
 
 		Paint paint = new Paint(); 
 		paint.setColor(Color.rgb(57, 138, 243));
-		int len = (rect.bottom - rect.top) / 8;
-		if (len / 8 >= 2) paint.setStrokeWidth(len / 8);
-		else paint.setStrokeWidth(2);
+		int strokeWidth = Math.max(width / 240, 2);
+		paint.setStrokeWidth(strokeWidth);
 
 		if(frontCamera) {
 			int left = rect.left;
@@ -191,7 +190,8 @@ public class STUtils {
 
 		Paint paint = new Paint(); 
 		paint.setColor(Color.rgb(57, 138, 243));
-		paint.setStrokeWidth(2);
+		int strokeWidth = Math.max(width / 240, 2);
+		paint.setStrokeWidth(strokeWidth);
 		paint.setStyle(Style.STROKE);
 
 		for (PointF point : points) {
