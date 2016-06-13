@@ -6,7 +6,7 @@ import android.graphics.PointF;
 import android.graphics.Rect;
 
 /**
- * CvFaceSDK API: CvFace
+ * STMobile API: StMobile
  * Created by Guangli W on 9/7/15.
  */
 public class STMobile106 extends st_mobile_106_t{
@@ -61,6 +61,6 @@ public class STMobile106 extends st_mobile_106_t{
     
     @Override
     public String toString() {
-		return "CvFace(" + getRect() + ", " + score + ")";
+		return "STMobile(" + getRect() + ", " + score + ")";
     }
 }

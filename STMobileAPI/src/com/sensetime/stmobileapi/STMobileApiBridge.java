@@ -12,9 +12,9 @@ import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 
 public interface STMobileApiBridge extends Library {
-    class cv_rect_t extends Structure {
+    class st_rect_t extends Structure {
     	
-        public static class ByValue extends cv_rect_t implements Structure.ByValue {
+        public static class ByValue extends st_rect_t implements Structure.ByValue {
         }
 
         public int left;
@@ -28,8 +28,8 @@ public interface STMobileApiBridge extends Library {
         }
 
         @Override
-        public cv_rect_t clone() {
-        	cv_rect_t copy = new cv_rect_t();
+        public st_rect_t clone() {
+        	st_rect_t copy = new st_rect_t();
             copy.left = this.left;
             copy.top = this.top;
             copy.right = this.right;
@@ -41,8 +41,8 @@ public interface STMobileApiBridge extends Library {
          * The jna.Structure class is passed on by reference by default,
          * however, in some cases, we need it by value.
          */
-        public cv_rect_t.ByValue copyToValue() {
-        	cv_rect_t.ByValue retObj = new cv_rect_t.ByValue();
+        public st_rect_t.ByValue copyToValue() {
+        	st_rect_t.ByValue retObj = new st_rect_t.ByValue();
             retObj.left = this.left;
             retObj.top = this.top;
             retObj.right = this.right;
@@ -52,7 +52,7 @@ public interface STMobileApiBridge extends Library {
     }
     
     class st_mobile_106_t extends Structure {
-    	public cv_rect_t rect;
+    	public st_rect_t rect;
     	public float score;
     	public float[] points_array = new float[212];
     	public int yaw;
@@ -99,12 +99,22 @@ public interface STMobileApiBridge extends Library {
     }
 
     enum ResultCode {
-        CV_OK(0),
-        CV_E_INVALIDARG(-1),
-        CV_E_HANDLE(-2),
-        CV_E_OUTOFMEMORY(-3),
-        CV_E_FAIL(-4),
-        CV_E_DELNOTFOUND(-5);
+        ST_OK(0),
+        ST_E_INVALIDARG(-1),
+        ST_E_HANDLE(-2),
+        ST_E_OUTOFMEMORY(-3),
+        ST_E_FAIL(-4),
+        ST_E_DELNOTFOUND(-5),
+    	ST_E_INVALID_PIXEL_FORMAT(-6),	///< 不支持的图像格式
+    	ST_E_FILE_NOT_FOUND(-10),   ///< 模型文件不存在
+    	ST_E_INVALID_FILE_FORMAT(-11),	///< 模型格式不正确，导致加载失败
+    	ST_E_INVALID_APPID(-12),		///< 包名错误
+    	ST_E_INVALID_AUTH(-13),		///< 加密狗功能不支持
+    	ST_E_AUTH_EXPIRE(-14),		///< SDK过期
+    	ST_E_FILE_EXPIRE(-15),		///< 模型文件过期
+    	ST_E_DONGLE_EXPIRE(-16),	///< 加密狗过期
+    	ST_E_ONLINE_AUTH_FAIL(-17),		///< 在线验证失败
+    	ST_E_ONLINE_AUTH_TIMEOUT(-18);	
 
         private final int resultCode;
 
@@ -123,12 +133,40 @@ public interface STMobileApiBridge extends Library {
     STMobileApiBridge FACESDK_INSTANCE = (STMobileApiBridge) Native.loadLibrary("st_mobile", STMobileApiBridge.class);
 
     //cv_mobile_face_106
+  /// @brief 创建实时人脸106关键点跟踪句柄
+  /// @param[in] model_path 模型文件的绝对路径或相对路径，若不指定模型可为NULL; 模型中包含detect+align+pose模型
+  /// @param[in] config 配置选项 默认使用双线程跟踪，可选择使用单线程，实时视频预览建议使用双线程，图片或视频后处理建议使用单线程
+  /// @parma[out] handle 人脸跟踪句柄，失败返回NULL
+  /// @return 成功返回CV_OK, 失败返回其他错误信息
     int st_mobile_tracker_106_create(String model_path, int config, PointerByReference handle);
     
+  /// @brief 设置检测到的最大人脸数目N，持续track已检测到的N个人脸直到人脸数小于N再继续做detect.
+  /// @param[in] handle 已初始化的关键点跟踪句柄
+  /// @param[in] max_facecount 设置为1即是单脸跟踪，有效范围为[1, 32]
+  /// @return 成功返回CV_OK, 错误则返回错误码
     int st_mobile_tracker_106_set_facelimit(Pointer handle,int max_facecount);
+   
+  /// @brief 重置实时人脸106关键点跟踪
+  /// @param [in] handle 已初始化的实时目标人脸106关键点跟踪句柄
+  /// @return 成功返回CV_OK, 错误则返回错误码
+    int st_mobile_tracker_106_reset(Pointer handle);
     
-    int st_mobile_tracker_106_set_detectinternal(Pointer handle,int val);
+  /// @brief 设置tracker每多少帧进行一次detect.
+  /// @param[in] handle 已初始化的关键点跟踪句柄
+  /// @param[in] val  有效范围[1, -)
+  /// @return 成功返回CV_OK, 错误则返回错误码
+    int st_mobile_tracker_106_set_detect_interval(Pointer handle,int val);
     
+  /// @brief 对连续视频帧进行实时快速人脸106关键点跟踪
+  /// @param handle 已初始化的实时人脸跟踪句柄
+  /// @param image 用于检测的图像数据
+  /// @param pixel_format 用于检测的图像数据的像素格式,都支持，不推荐BGRA和BGR，会慢
+  /// @param image_width 用于检测的图像的宽度(以像素为单位)
+  /// @param image_height 用于检测的图像的高度(以像素为单位)
+  /// @param orientation 视频中人脸的方向
+  /// @param p_faces_array 检测到的人脸信息数组，api负责分配内存，需要调用st_mobile_release_tracker_result函数释放
+  /// @param p_faces_count 检测到的人脸数量
+  /// @return 成功返回CV_OK，否则返回错误类型
     int st_mobile_tracker_106_track(
     	Pointer handle,
     	byte[] image,
@@ -153,8 +191,48 @@ public interface STMobileApiBridge extends Library {
         	IntByReference p_faces_count
         );
     
+  /// @brief 释放实时人脸106关键点跟踪返回结果时分配的空间
+  /// @param faces_array 跟踪到到的人脸信息数组
+  /// @param faces_count 跟踪到的人脸数量
     void st_mobile_tracker_106_release_result(Pointer faces_array, int faces_count);
-    
+ 
+  /// @brief 销毁已初始化的track106句柄
+  /// @param handle 已初始化的句柄
     void st_mobile_tracker_106_destroy(Pointer handle);
-    
+  
+   //========face detection
+  /// @brief 创建人脸检测句柄
+  int st_mobile_face_detection_create(String model_path, int config, PointerByReference handle);
+  
+  int st_mobile_face_detection_detect(
+  	Pointer handle,
+  	byte[] image,
+  	int pixel_format,
+  	int image_width,
+  	int image_height,
+  	int image_stride,
+  	int orientation,
+  	PointerByReference p_faces_array,
+  	IntByReference p_faces_count
+  );
+  
+  int st_mobile_face_detection_detect(
+		  	Pointer handle,
+		  	int[] image,
+		  	int pixel_format,
+		  	int image_width,
+		  	int image_height,
+		  	int image_stride,
+		  	int orientation,
+		  	PointerByReference p_faces_array,
+		  	IntByReference p_faces_count
+		  );
+
+/// @brief 释放人脸检测结果
+  void st_mobile_face_detection_release_result(Pointer faces_array,int faces_count); 
+  
+/// @brief 销毁已初始化的人脸检测句柄
+/// @param[in] handle 已初始化的句柄
+  void st_mobile_face_detection_destroy(Pointer handle);
+  
 }

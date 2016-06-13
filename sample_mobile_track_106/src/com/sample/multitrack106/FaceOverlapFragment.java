@@ -127,12 +127,6 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 					STMobile106[] faces = tracker.track(tmp, dir,PREVIEW_WIDTH,PREVIEW_HEIGHT);
 					long end_track = System.currentTimeMillis();
 					Log.i("track106", "track cost "+(end_track - start_track)+" ms");
-					if(DEBUG){
-						for (int i = 0; i < faces.length; i++) {
-							Log.i("Test", "detect faces: "
-									+ faces[i].getRect().toString());
-						}
-					}
 
 					long timer = System.currentTimeMillis();
 					timeCounter.add(timer);
@@ -152,6 +146,14 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 					 * 绘制人脸框
 					 */
 					if (faces != null) {
+						
+						if(DEBUG){
+							for (int i = 0; i < faces.length; i++) {
+								Log.i("Test", "detect faces: "
+										+ faces[i].getRect().toString());
+							}
+						}
+						
 						Canvas canvas = mOverlap.getHolder().lockCanvas();
 
 						if (canvas == null)

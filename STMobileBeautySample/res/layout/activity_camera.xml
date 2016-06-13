@@ -1,0 +1,91 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="${relativePackage}.${activityClass}" >
+
+    <android.opengl.GLSurfaceView
+        android:id="@+id/glsurface_view"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent" />
+
+    <Spinner
+        android:id="@+id/preview_size"
+        android:layout_width="wrap_content" 
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        />
+    <LinearLayout android:id = "@+id/velocity"
+                  android:layout_width="wrap_content" 
+                  android:layout_height="wrap_content"
+                  android:layout_marginLeft="5dp"
+                  android:layout_below="@+id/preview_size"
+                  android:orientation="horizontal">
+    <TextView
+              android:layout_width="wrap_content" 
+              android:layout_height="wrap_content"
+              android:text="@string/velocity"
+              android:textSize="15dp"/>
+    <TextView android:id="@+id/velocity_value"
+              android:layout_width="wrap_content" 
+              android:layout_height="wrap_content"
+              android:layout_marginLeft="5dp"
+              android:textSize="15dp"
+              android:text="0"/>
+    </LinearLayout>
+    <LinearLayout android:id = "@+id/cpuutility"
+                  android:layout_width="wrap_content" 
+                  android:layout_height="wrap_content"
+                  android:layout_marginLeft="5dp"
+                  android:layout_below="@+id/velocity"
+                  android:orientation="horizontal">
+    <TextView 
+              android:layout_width="wrap_content" 
+              android:layout_height="wrap_content"
+              android:text="@string/CPU_utility"
+              android:textSize="15dp"/>
+    <TextView android:id="@+id/cpuutility_value"
+       		  android:layout_width="wrap_content" 
+              android:layout_height="wrap_content"
+              android:layout_marginLeft="5dp"
+              android:textSize="15dp"
+              android:text="0"/>
+    </LinearLayout>
+    
+    <TextView
+            android:id="@+id/capture"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_alignParentTop="true"
+            android:layout_marginRight="10dp"
+            android:text="@string/capture"
+            android:background="#30ffffff"
+            android:textSize="24dp"
+            android:textColor="@android:color/black" />
+    
+     <Button
+            android:id="@+id/compare"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_alignParentRight="true"
+            android:layout_above="@+id/beautify_level"
+            android:layout_marginRight="10dp"
+            android:text="@string/compare"
+            android:textSize="20dp"
+            android:textColor="@android:color/black" />
+        
+    <LinearLayout
+        android:id="@+id/beautify_level"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_vertical"
+        android:layout_alignParentBottom="true" 
+        android:layout_marginBottom="10dp"
+        android:fillViewport="true"
+        android:background="#30ffffff"
+        android:orientation="horizontal">
+
+    </LinearLayout>
+</RelativeLayout>

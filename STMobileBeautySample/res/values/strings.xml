@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="app_name">STMobileBeautySample</string>
+    <string name="gpudemoinfo">SenseTime BeautyDEMO</string>
+    <string name="gallery">Gallery</string>
+    <string name="camera">Camera</string>
+    <string name="no_filter">No filter</string>
+	<string name="capture">Capture</string>
+	<string name="whiten">Whiten</string>
+	<string name="ruddy">Ruddy</string>
+    <string name="compare">Compare</string>
+	<string name="save">Save</string>
+	<string name="saving">Saving</string>
+	<string name="velocity">Velocity:</string>
+	<string name="CPU_utility">CPU utility:</string>
+</resources>

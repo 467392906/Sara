@@ -21,8 +21,8 @@ public class STMobileMultiTrack106 {
     private static final int FACE_KEY_POINTS_COUNT = 106;
     static boolean DEBUG = true;// false;
     
-    private int ST_MOBILE_TRACKING_DEFAULT_CONFIG = 0x00000000;
-    private int ST_MOBILE_TRACKING_SINGLE_THREAD = 0x00000001;
+    public static int ST_MOBILE_TRACKING_DEFAULT_CONFIG = 0x00000000;
+    public static int ST_MOBILE_TRACKING_SINGLE_THREAD = 0x00000001;
     
 	private Context mContext;
 	private static final String BEAUTIFY_MODEL_NAME = "track.tar";
@@ -50,6 +50,10 @@ public class STMobileMultiTrack106 {
 		}
 		String modulePath = getModelPath(BEAUTIFY_MODEL_NAME);
     	int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_create(modulePath, config, handlerPointer);
+    	if(rst != ResultCode.ST_OK.getResultCode())
+    	{
+    		return;
+    	}
     	trackHandle = handlerPointer.getValue();
     }
     
@@ -94,7 +98,10 @@ public class STMobileMultiTrack106 {
     
     public int setMaxDetectableFaces(int max)
     {
-    	int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_set_facelimit(trackHandle,max);
+    	int rst = -1;
+    	if(trackHandle != null){
+    	rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_set_facelimit(trackHandle,max);
+    	}
         return rst;
     }
     
@@ -118,7 +125,7 @@ public class STMobileMultiTrack106 {
     	if(DEBUG)System.out.println("SampleLiveness-------->CvFaceMultiTrack--------->track1");
     	
         int[] colorImage = STUtils.getBGRAImageByte(image);
-        return track(colorImage, STImageFormat.CV_PIX_FMT_BGRA8888,image.getWidth(), image.getHeight(), image.getWidth(), orientation);
+        return track(colorImage, STImageFormat.ST_PIX_FMT_BGRA8888,image.getWidth(), image.getHeight(), image.getWidth(), orientation);
     }
 
     /**
@@ -134,6 +141,9 @@ public class STMobileMultiTrack106 {
     public STMobile106[] track(int[] colorImage,int cvImageFormat, int imageWidth, int imageHeight, int imageStride, int orientation) {
     	if(DEBUG)System.out.println("SampleLiveness-------->CvFaceMultiTrack--------->track2");
     	
+    	if(trackHandle == null){
+    		return null;
+    	}
         long startTime = System.currentTimeMillis();
         /*
         int rst = STMobileApiBridge.FACESDK_INSTANCE.cv_face_track_106(trackHandle, colorImage, cvImageFormat,imageWidth,
@@ -145,7 +155,7 @@ public class STMobileMultiTrack106 {
         
         if(DEBUG)Log.d("Test", "multi track time: "+(endTime-startTime)+"ms");
         
-        if (rst != ResultCode.CV_OK.getResultCode()) {
+        if (rst != ResultCode.ST_OK.getResultCode()) {
             throw new RuntimeException("Calling cv_face_multi_track() method failed! ResultCode=" + rst);
         }
 
@@ -182,7 +192,7 @@ public class STMobileMultiTrack106 {
     		System.out.println("SampleLiveness-------->CvFaceMultiTrack--------->track3");
     	}
     	
-        return track(image, STImageFormat.CV_PIX_FMT_NV21,width, height, width, orientation);
+        return track(image, STImageFormat.ST_PIX_FMT_NV21,width, height, width, orientation);
     }
 
     /**
@@ -200,6 +210,9 @@ public class STMobileMultiTrack106 {
     		System.out.println("SampleLiveness-------->CvFaceMultiTrack--------->track4");
     	}
     	
+    	if(trackHandle == null){
+    		return null;
+    	}
         long startTime = System.currentTimeMillis();
         /*
            int rst = STMobileApiBridge.FACESDK_INSTANCE.cv_face_track_106(trackHandle, colorImage, cvImageFormat,imageWidth,
@@ -211,7 +224,7 @@ public class STMobileMultiTrack106 {
         
         if(DEBUG)Log.d("Test", "multi track time: "+(endTime-startTime)+"ms");
         
-        if (rst != ResultCode.CV_OK.getResultCode()) {
+        if (rst != ResultCode.ST_OK.getResultCode()) {
             throw new RuntimeException("Calling cv_face_multi_track() method failed! ResultCode=" + rst);
         }
 
