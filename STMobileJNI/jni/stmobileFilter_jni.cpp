@@ -8,7 +8,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "stmobile_getscript.h"
 #include "prebuilt/include/st_mobile.h"
 #include "jni_common.h"
 

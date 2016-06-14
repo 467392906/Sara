@@ -11,8 +11,6 @@ include $(CLEAR_VARS)
 
 LOCAL_MODULE    := stmobilefilter_jni
 LOCAL_SRC_FILES := stmobileFilter_jni.cpp\
-	               stmobile_getscript.cpp \
-				   stmobile_aes.cpp \
 				   
 LOCAL_LDLIBS := -llog -L$(SYSROOT)/usr/lib/$(TARGET_ARCH_ABI) -lz -ljnigraphics -lGLESv2 
 LOCAL_SHARED_LIBRARIES := libst_mobile
