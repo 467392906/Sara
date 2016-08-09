@@ -2,3 +2,16 @@ STMobileAPI/bin/
 STMobileAPI/gen/
 sample_mobile_track_106/bin/
 sample_mobile_track_106/gen/
+STMobileBeautySample/bin/
+STMobileJNI/bin/
+STMobileJNI/gen/
+STMobileJNI/.settings/
+STMobileJNI/obj/
+sample_face_detect/bin/
+sample_face_detect/gen/
+sample_face_detect/.settings/
+STMobileBeautySample/.settings/
+STMobileBeautySample/gen/
+forPandaTV/PLDroidCameraStreamingDemo/projectFilesBackup/.idea/
+sample_mobile_track_106/.settings/
+STMobileAPI/.settings/

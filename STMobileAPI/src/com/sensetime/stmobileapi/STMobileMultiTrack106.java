@@ -25,7 +25,7 @@ public class STMobileMultiTrack106 {
     public static int ST_MOBILE_TRACKING_SINGLE_THREAD = 0x00000001;
     
 	private Context mContext;
-	private static final String BEAUTIFY_MODEL_NAME = "track.tar";
+	private static final String BEAUTIFY_MODEL_NAME = "track_compose.model";
       
     PointerByReference ptrToArray = new PointerByReference();
     IntByReference ptrToSize = new IntByReference();

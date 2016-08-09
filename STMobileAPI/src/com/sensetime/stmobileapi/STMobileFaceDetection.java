@@ -21,7 +21,7 @@ public class STMobileFaceDetection {
 	private Context mContext;
 	private static boolean DEBUG = true;// false;
 	private String TAG = "FaceDetection";
-	private static final String DETECTION_MODEL_NAME = "track.tar";
+	private static final String DETECTION_MODEL_NAME = "track_compose.model";
 	public static int ST_MOBILE_DETECT_DEFAULT_CONFIG = 0x00000000;  ///< 默认选项
 	public static int ST_MOBILE_DETECT_FAST = 0x00000001;  ///< resize图像为长边320的图像之后再检测，结果处理为原图像对应结果
 	public static int ST_MOBILE_DETECT_BALANCED = 0x00000002;  ///< resize图像为长边640的图像之后再检测，结果处理为原图像对应结果

@@ -135,7 +135,11 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 						start++;
 					}
 					fps = timeCounter.size() - start;
-					mListener.onTrackdetected(fps);
+					try {
+						mListener.onTrackdetected(fps, faces[0].pitch, faces[0].roll, faces[0].yaw);
+					} catch(Exception e) {
+						e.printStackTrace();
+					}
 					if (start > 100) {
 						timeCounter = timeCounter.subList(start,
 								timeCounter.size() - 1);
@@ -219,7 +223,7 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 	}
 
 	public interface TrackCallBack {
-		public void onTrackdetected(int value);
+		public void onTrackdetected(int value, float pitch, float roll, float yaw);
 	}
 
 }

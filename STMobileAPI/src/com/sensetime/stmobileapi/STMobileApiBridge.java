@@ -55,9 +55,9 @@ public interface STMobileApiBridge extends Library {
     	public st_rect_t rect;
     	public float score;
     	public float[] points_array = new float[212];
-    	public int yaw;
-    	public int pitch;
-    	public int roll;
+    	public float yaw;
+    	public float pitch;
+    	public float roll;
     	public int eye_dist;
     	public int ID;
 

@@ -55,13 +55,13 @@ public class MultitrackerActivity extends Activity {
 		fragment.registTrackCallback(new FaceOverlapFragment.TrackCallBack() {
 			
 			@Override
-			public void onTrackdetected(final int value) {
+			public void onTrackdetected(final int value, final float pitch, final float roll, final float yaw) {
 				// TODO Auto-generated method stub
 				
 				runOnUiThread(new Runnable() {
 					@Override
 					public void run() {
-						fpstText.setText("FPS: " + value);
+						fpstText.setText("FPS: " + value+"\nPITCH: "+pitch+"\nROLL: "+roll+"\nYAW: "+yaw);
 					}
 				});
 			}
