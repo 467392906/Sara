@@ -60,13 +60,14 @@ typedef int   st_result_t;
 #define ST_E_FILE_NOT_FOUND (-10)	///< 模型文件不存在
 #define ST_E_INVALID_FILE_FORMAT (-11)	///< 模型格式不正确，导致加载失败
 #define ST_E_INVALID_APPID (-12)		///< 包名错误
-#define ST_E_INVALID_AUTH (-13)		///< 加密狗功能不支持
+#define ST_E_INVALID_AUTH (-13)		///< license功能不支持
 #define ST_E_AUTH_EXPIRE (-14)		///< SDK过期
 #define ST_E_FILE_EXPIRE (-15)		///< 模型文件过期
 #define ST_E_DONGLE_EXPIRE (-16)		///< 加密狗过期
 #define ST_E_ONLINE_AUTH_FAIL (-17)		///< 在线验证失败
 #define ST_E_ONLINE_AUTH_TIMEOUT (-18)		///< 在线验证超时
-
+#define ST_E_INVALID_ACTIVATE (-19)         ///< 产品未激活
+#define ST_E_INVALID_LICENSE (-20)          ///< license文件无效
 
 /// st rectangle definition
 typedef struct st_rect_t {
@@ -117,6 +118,8 @@ typedef struct st_mobile_106_t {
     float eye_dist;			///< 两眼间距
     int ID;				///< faceID
 } st_mobile_106_t,*p_st_mobile_106_t;
+
+
 
 //>> CONFIG_ST_MOBILE_API_CONVERT
 /// 支持的颜色转换格式
@@ -175,6 +178,32 @@ st_mobile_color_convert(
 	int image_width,
 	int image_height,
 	st_color_convert_type type
+);
+
+/// @brief 根据授权文件生成激活码, 在使用新的license文件时使用
+/// @param[in] product_name 产品名称
+/// @param[in] license_path license文件路径
+/// @param[out] active_code 返回当前设备的激活码，由用户分配内存，请分配至少129个字节，建议分配1024字节
+/// @param[in，out] active_code_len  输入为active_code的内存大小, 返回当前设备的激活码字节长度
+/// @return 正常返回ST_OK，否则返回错误类型
+ST_SDK_API st_result_t
+st_mobile_generate_activecode(
+	const char* product_name,
+	const char* license_path,
+	char* activation_code,
+	int* activation_code_len
+);
+
+/// @brief 检查激活码, 必须在所有接口之前调用
+/// @param[in] product_name 产品名称
+/// @param[in] license_path license文件路径
+/// @param[in] active_path 当前设备的激活码
+/// @return 正常返回ST_OK，否则返回错误类型
+ST_SDK_API st_result_t
+st_mobile_check_activecode(
+	const char* product_name,
+	const char* license_path,
+	const char* activation_code
 );
 
 /// @}

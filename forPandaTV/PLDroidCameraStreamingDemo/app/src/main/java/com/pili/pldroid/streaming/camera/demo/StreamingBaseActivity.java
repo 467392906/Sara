@@ -2,6 +2,7 @@ package com.pili.pldroid.streaming.camera.demo;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
@@ -56,9 +57,7 @@ import java.io.OutputStream;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
-import java.util.Vector;
 
 /**
  * Created by jerikc on 15/7/6.
@@ -70,7 +69,8 @@ public class StreamingBaseActivity extends Activity implements
         SurfaceTextureCallback,
         CameraPreviewFrameView.Listener,
         CameraStreamingManager.StreamingSessionListener,
-        CameraStreamingManager.StreamingStateListener {
+        CameraStreamingManager.StreamingStateListener,
+        STMobileStickerNative.ItemCallback {
 
     private static final String TAG = "StreamingBaseActivity";
 
@@ -89,6 +89,7 @@ public class StreamingBaseActivity extends Activity implements
     protected TextView mSatusTextView;
     private TextView mLogTextView;
     private TextView mStreamStatus;
+    private TextView mcallbackStatus;
 
     protected boolean mShutterButtonPressed = false;
     private boolean mIsTorchOn = false;
@@ -121,8 +122,11 @@ public class StreamingBaseActivity extends Activity implements
     private FBO mFBO = new FBO();
 
     private STImageFilterNative mStImageFilterNative;
-
     private STMobileStickerNative mStStickerNative;
+    private static final int ST_MATERIAL_BEGIN = 0;      ///< 开始渲染素材
+    private static final int ST_MATERIAL_PROCESS = 1;    ///< 素材渲染中
+    private static final int ST_MATERIAL_END = 2;         ///< 素材未被渲染
+
     private int[] mTextureOutId;
     private int[] mMidTextureId;
     private  CameraInputRender mCameraInputRender;
@@ -223,7 +227,7 @@ public class StreamingBaseActivity extends Activity implements
 //        SharedLibraryNameHelper.getInstance().renameSharedLibrary(
 //                SharedLibraryNameHelper.PLSharedLibraryType.PL_SO_TYPE_H264, "pldroid_streaming_h264_encoder_v7a");
 
-    //    String streamJsonStrFromServer = getIntent().getStringExtra(Config.EXTRA_KEY_STREAM_JSON);
+        //    String streamJsonStrFromServer = getIntent().getStringExtra(Config.EXTRA_KEY_STREAM_JSON);
         String streamJsonStrFromServer = "{\"id\":\"z1.NIU7PS.shangtang-test\",\"createdAt\":\"2016-06-14T03:32:11.534Z\",\"updatedAt\":\"2016-06-14T03:32:11.534Z\",\"title\":\"shangtang-test\",\"hub\":\"NIU7PS\",\"disabled\":false,\"publishKey\":\"efdbc36f-8759-44c2-bdd8-873521b6724a\",\"publishSecurity\":\"static\",\"hosts\":{\"publish\":{\"rtmp\":\"pili-publish.ps.qiniucdn.com\"},\"live\":{\"hdl\":\"pili-live-hdl.ps.qiniucdn.com\",\"hls\":\"pili-live-hls.ps.qiniucdn.com\",\"http\":\"pili-live-hls.ps.qiniucdn.com\",\"rtmp\":\"pili-live-rtmp.ps.qiniucdn.com\",\"snapshot\":\"1000058.live1-snapshot.z1.pili.qiniucdn.com\"},\"playback\":{\"hls\":\"pili-playback.ps.qiniucdn.com\",\"http\":\"pili-playback.ps.qiniucdn.com\"}}}\n";
         Log.i(TAG, "streamJsonStrFromServer:" + streamJsonStrFromServer);
 
@@ -281,10 +285,12 @@ public class StreamingBaseActivity extends Activity implements
         initStickerFiles();
         mStImageFilterNative = new STImageFilterNative();
         mStStickerNative = new STMobileStickerNative();
+        STMobileStickerNative.setCallback(this);
         mCameraInputRender = new CameraInputRender();
 
         initAccelerometer();
     }
+
 
     @Override
     protected void onResume() {
@@ -297,7 +303,8 @@ public class StreamingBaseActivity extends Activity implements
         }
         startAccelerometer();
         copyModelIfNeed("face_action.model");
-    //    copyModelIfNeed("rabbit.zip");
+        copyModelIfNeed("MOBILESDK_FD681B7F-82D2-4917-B9B7-E0DB5D8D33ED.lic");
+        //    copyModelIfNeed("rabbit.zip");
     }
 
     @Override
@@ -369,7 +376,7 @@ public class StreamingBaseActivity extends Activity implements
             for (Camera.Size s : list) {
                 size = s;
                 Log.i(TAG, "w:" + s.width + ", h:" + s.height);
- //               break;
+                //               break;
                 if (s.height == 720) {
                     size = s;
                     break;
@@ -442,7 +449,7 @@ public class StreamingBaseActivity extends Activity implements
     public void onSurfaceCreated() {
         Log.i(TAG, "onSurfaceCreated");
         mFBO.initialize(this);
-
+        initSticker();
         mCameraInputRender.init();
     }
 
@@ -450,7 +457,6 @@ public class StreamingBaseActivity extends Activity implements
     public void onSurfaceChanged(int width, int height) {
         Log.i(TAG, "onSurfaceChanged width:" + width + ",height:" + height);
         mFBO.updateSurfaceSize(width, height);
-        initSticker();
         int result = mStImageFilterNative.initBeautify(mPreviewSizeWidth,mPreviewSizeHeight);
         Log.i(TAG,"the result is for initBeautify "+result);
         mStImageFilterNative.setParam(STBeautyParamsType.ST_BEAUTIFY_CONTRAST_STRENGTH, 7/7);
@@ -531,7 +537,7 @@ public class StreamingBaseActivity extends Activity implements
         boolean needMirror = false;
 
         if(mCameraStreamingSetting.getReqCameraId()==Camera.CameraInfo.CAMERA_FACING_FRONT){
-          //  if((dir & 1) == 1) {
+            //  if((dir & 1) == 1) {
             if(((mFrontCameraOrientation == 270 && (dir & 1) == 1) ||
                     (mFrontCameraOrientation == 90 && (dir & 1) == 0))){
                 dir = (dir ^ 2);
@@ -550,8 +556,8 @@ public class StreamingBaseActivity extends Activity implements
         Log.i(TAG,"onDrawFrame, the time for whole operation is "+ (afterStickerTime - startTime));
 
         Log.i(TAG,"the result is "+result+" the width is "+texWidth+",the height is "+texHeight);
-        GLES20.glViewport(0, 0, (int)mSurfaceWidth, (int)mSurfaceHeight);
-   //     return mMidTextureId[0];
+        GLES20.glViewport(0, 0, mSurfaceWidth, mSurfaceHeight);
+        //     return mMidTextureId[0];
         return mTextureOutId[0];
 
 /*
@@ -644,6 +650,31 @@ public class StreamingBaseActivity extends Activity implements
             path = dataDir.getAbsolutePath() + File.separator + fileName;
         }
         return path;
+    }
+
+    @Override
+    public void processTextureCallback(final String materialName, final int strStatus) {
+        StreamingBaseActivity.this.runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                String status_string = null;
+                switch (strStatus) {
+                    case ST_MATERIAL_BEGIN:
+                        status_string = "begin";
+                        break;
+                    case ST_MATERIAL_END:
+                        status_string = "end";
+                        break;
+                    case ST_MATERIAL_PROCESS:
+                        status_string = "process";
+                        break;
+                    default:
+                        break;
+
+                }
+                mcallbackStatus.setText("curMaterial="+materialName+"\ncurStatus="+status_string);
+            }
+        });
     }
 
     private class Switcher implements Runnable {
@@ -779,7 +810,7 @@ public class StreamingBaseActivity extends Activity implements
             case CameraStreamingManager.STATE.CAMERA_SWITCHED:
 //                mShutterButtonPressed = false;
                 if (extra != null) {
-                    Log.i(TAG, "current camera id:" + (Integer)extra);
+                    Log.i(TAG, "current camera id:" + extra);
                 }
                 Log.i(TAG, "camera switched");
                 final int currentCamId = (Integer)extra;
@@ -842,6 +873,7 @@ public class StreamingBaseActivity extends Activity implements
 
         mLogTextView = (TextView) findViewById(R.id.log_info);
         mStreamStatus = (TextView) findViewById(R.id.stream_status);
+        mcallbackStatus = (TextView) findViewById(R.id.callback_status);
 
         mMuteButton.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -974,6 +1006,20 @@ public class StreamingBaseActivity extends Activity implements
         }
     }
 
+    private void saveActiveCode(String filename, String activeCode) {
+        SharedPreferences sp = getSharedPreferences("activecode", MODE_PRIVATE);
+        SharedPreferences.Editor editor = sp.edit();
+        editor.putString("activationcode", activeCode);
+        editor.commit();
+    }
+
+    private String getActiveCode(String filename) {
+        SharedPreferences sp = getSharedPreferences(filename, 0);
+        String activeCode =sp.getString("activationcode", "");
+
+        return activeCode;
+    }
+
     private static DnsManager getMyDnsManager() {
         IResolver r0 = new DnspodFree();
         IResolver r1 = AndroidDnsServer.defaultResolver();
@@ -1054,10 +1100,44 @@ public class StreamingBaseActivity extends Activity implements
 
     private void initSticker(){
         String modulePath = getFilePath("face_action.model");
+        String licensePath =getFilePath("MOBILESDK_FD681B7F-82D2-4917-B9B7-E0DB5D8D33ED.lic");
+
+        int[] codeLen = new int[1];
+        codeLen[0] = 1024;
+
+        String activeCode = getActiveCode("activecode");
+        int checkRes;
+
+        if(activeCode == null || activeCode.length()==0) {
+            activeCode = mStStickerNative.generateActiveCode("MobileSDK", licensePath, codeLen);
+            checkRes =  mStStickerNative.checkActiveCode("MobileSDK", licensePath, activeCode);
+            if(checkRes != 0) {
+                Log.e(TAG, "-->> license is out of date");
+                return;
+            } else {
+                saveActiveCode("active_code.txt", activeCode);
+            }
+        } else {
+            checkRes = mStStickerNative.checkActiveCode("MobileSDK", licensePath, activeCode);
+            if(checkRes != 0) {
+                Log.e(TAG, "-->> activeCode is out of date, need to generate another one");
+                activeCode = mStStickerNative.generateActiveCode("MobileSDK", licensePath, codeLen);
+                checkRes = mStStickerNative.checkActiveCode("MobileSDK", licensePath, activeCode);
+                if(checkRes != 0) {
+                    Log.e(TAG, "-->> license is invalid");
+                    return;
+                }
+            }
+        }
+//
+//        if(checkRes != 0) {
+//            Log.e(TAG, "-->> check activeCode failed!");
+//            return;
+//        }
         //get the first sticker
         mStickerFolderPath = mStickerFilesList.get(0);
         mCurrentStickerNum = 0;
-        int result1 =  mStStickerNative.createInstance(mStickerFolderPath,modulePath, 0x0000003F);
+        int result1 =  mStStickerNative.createInstance(mStickerFolderPath, modulePath, 0x0000003F);
         Log.i(TAG,"the result for createInstance for sticker is "+result1);
     }
 

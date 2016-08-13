@@ -52,6 +52,15 @@
         android:textColor="@color/pldroid_streaming_white"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
+	<TextView
+	android:id="@+id/callback_status"
+	android:layout_width="wrap_content"
+	android:layout_height="wrap_content"
+	android:layout_marginLeft="50dp"
+	android:layout_marginTop="110dp"
+	android:background="@android:color/transparent"
+	android:textAppearance="?android:attr/textAppearanceMedium"
+	android:textColor="@color/pldroid_streaming_white"/>
 
     <Button
         android:id="@+id/torch_btn"

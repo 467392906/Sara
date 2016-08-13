@@ -38,7 +38,7 @@ typedef struct st_mobile_human_action_t {
 
 /// @brief 创建人体行为检测句柄
 /// @param[in] model_path 模型文件的例如models/track.tar
-/// @param[in] config 配置选项，例如分别代表每种状态是否被检测，例如ST_MOBILE_DEFAULT_CONFIG 或 ST_MOBILE_HAND_LOVE|ST_MOBILE_FACE_DETECT
+/// @param[in] config 配置选项，分别代表每种状态是否被检测，例如ST_MOBILE_DEFAULT_CONFIG 或 ST_MOBILE_EYE_BLINK|ST_MOBILE_MOUTH_AH
 /// @parma[out] handle 人体行为检测句柄，失败返回NULL
 /// @return 成功返回ST_OK, 失败返回其他错误码,错误码定义在st_common.h 中，如ST_E_FAIL等
 ST_SDK_API st_result_t
@@ -63,7 +63,8 @@ void st_mobile_human_action_destroy(
 /// @param[in] image_height 用于检测的图像的高度(以像素为单位)
 /// @param[in] image_stride 用于检测的图像的跨度(以像素为单位)，即每行的字节数；目前仅支持字节对齐的padding，不支持roi
 /// @param[in] orientation 图像中人脸的方向
-/// @param[out] p_humans_array 检测到的人体行为数组，api负责分配内存，需要调用st_mobile_human_release_result函数释放
+/// @param[in] detect_config 检测选项，代表当前需要检测哪些动作，例如ST_MOBILE_EYE_BLINK|ST_MOBILE_MOUTH_AH表示当前帧只检测眨眼和张嘴
+/// @param[out] p_humans_array 检测到的人体行为数组,用户负责分配内存
 /// @param[out] p_humans_count 检测到的人数量
 /// @return 成功返回ST_OK，失败返回其他错误码,错误码定义在st_common.h 中，如ST_E_FAIL等
 ST_SDK_API st_result_t
