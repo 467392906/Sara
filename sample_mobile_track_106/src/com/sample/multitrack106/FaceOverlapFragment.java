@@ -4,6 +4,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.sensetime.stmobileapi.STMobile106;
+import com.sensetime.stmobileapi.STMobileFaceAction;
 import com.sensetime.stmobileapi.STMobileMultiTrack106;
 import com.sensetime.stmobileapi.STUtils;
 
@@ -29,6 +30,14 @@ import android.view.ViewGroup;
  * 
  */
 public class FaceOverlapFragment extends CameraOverlapFragment {
+    ///< 检测脸部动作：张嘴、眨眼、抬眉、点头、摇头
+    private static final int ST_MOBILE_TRACKING_ENABLE_FACE_ACTION = 0x00000020;
+    private static final int ST_MOBILE_FACE_DETECT   =  0x00000001;    ///<  人脸检测
+    private static final int ST_MOBILE_EYE_BLINK     =  0x00000002;  ///<  眨眼
+    private static final int ST_MOBILE_MOUTH_AH      =  0x00000004;    ///<  嘴巴大张
+    private static final int ST_MOBILE_HEAD_YAW      =  0x00000008;    ///<  摇头
+    private static final int ST_MOBILE_HEAD_PITCH    =  0x00000010;    ///<  点头
+    private static final int ST_MOBILE_BROW_JUMP     =  0x00000020;    ///<  眉毛挑动
 
 	// private FaceTrackerBase tracker = null;
 	private STMobileMultiTrack106 tracker = null;
@@ -76,7 +85,7 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 
 		if (tracker == null) {
 			long start_init = System.currentTimeMillis();
-			int config = 0; //default config
+            int config = ST_MOBILE_TRACKING_ENABLE_FACE_ACTION;
 			tracker = new STMobileMultiTrack106(getActivity(), config);
 			int max = 40;
 			tracker.setMaxDetectableFaces(max);
@@ -124,7 +133,7 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 					 * 调用实时人脸检测函数，返回当前人脸信息
 					 */
 					long start_track = System.currentTimeMillis();
-					STMobile106[] faces = tracker.track(tmp, dir,PREVIEW_WIDTH,PREVIEW_HEIGHT);
+                    STMobileFaceAction[] faceActions = tracker.trackFaceAction(tmp, dir, PREVIEW_WIDTH, PREVIEW_HEIGHT);
 					long end_track = System.currentTimeMillis();
 					Log.i("track106", "track cost "+(end_track - start_track)+" ms");
 
@@ -136,7 +145,9 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 					}
 					fps = timeCounter.size() - start;
 					try {
-						mListener.onTrackdetected(fps, faces[0].pitch, faces[0].roll, faces[0].yaw);
+                        mListener.onTrackdetected(fps,  faceActions[0].face.pitch, faceActions[0].face.roll, faceActions[0].face.yaw, faceActions[0].face.eye_dist, faceActions[0].face.ID,
+                                        checkFlag(faceActions[0].face_action, ST_MOBILE_EYE_BLINK), checkFlag(faceActions[0].face_action, ST_MOBILE_MOUTH_AH), checkFlag(faceActions[0].face_action, ST_MOBILE_HEAD_YAW),
+                                        checkFlag(faceActions[0].face_action, ST_MOBILE_HEAD_PITCH), checkFlag(faceActions[0].face_action, ST_MOBILE_BROW_JUMP));
 					} catch(Exception e) {
 						e.printStackTrace();
 					}
@@ -149,13 +160,12 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 					/**
 					 * 绘制人脸框
 					 */
-					if (faces != null) {
-						
-						if(DEBUG){
-							for (int i = 0; i < faces.length; i++) {
-								Log.i("Test", "detect faces: "
-										+ faces[i].getRect().toString());
+                    if(faceActions != null) {
+						if(DEBUG){						
+                            for(int i=0; i<faceActions.length; i++) {
+                              Log.i("Test", "detect faces: "+ faceActions[i].getFace().getRect().toString());
 							}
+							
 						}
 						
 						Canvas canvas = mOverlap.getHolder().lockCanvas();
@@ -166,16 +176,16 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 						canvas.drawColor(0, PorterDuff.Mode.CLEAR);
 						canvas.setMatrix(getMatrix());
 						boolean rotate270 = mCameraInfo.orientation == 270;
-						for (STMobile106 r : faces) {
+                        for (STMobileFaceAction r : faceActions) {
 							// Rect rect = r.getRect();
 							Rect rect;
 							if (rotate270) {
-								rect = STUtils.RotateDeg270(r.getRect(),PREVIEW_WIDTH, PREVIEW_HEIGHT);
+                                rect = STUtils.RotateDeg270(r.getFace().getRect(), PREVIEW_WIDTH, PREVIEW_HEIGHT);
 							} else {
-								rect = STUtils.RotateDeg90(r.getRect(),PREVIEW_WIDTH, PREVIEW_HEIGHT);
+                                rect = STUtils.RotateDeg90(r.getFace().getRect(), PREVIEW_WIDTH, PREVIEW_HEIGHT);
 							}
 							
-							PointF[] points = r.getPointsArray();
+                            PointF[] points = r.getFace().getPointsArray();
 							for (int i = 0; i < points.length; i++) {
 								if (rotate270) {
 									points[i] = STUtils.RotateDeg270(points[i], PREVIEW_WIDTH, PREVIEW_HEIGHT);
@@ -223,7 +233,14 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 	}
 
 	public interface TrackCallBack {
-		public void onTrackdetected(int value, float pitch, float roll, float yaw);
+//		public void onTrackdetected(int value, float pitch, float roll, float yaw);
+        public void onTrackdetected(int value, float pitch, float roll, float yaw, int eye_dist,
+                        int id, int eyeBlink, int mouthAh, int headYaw, int headPitch, int browJump);
 	}
+	
+    private int checkFlag(int action, int flag) {
+        int res = action & flag;
+        return res==0?0:1;
+    }
 
 }

@@ -12,6 +12,8 @@ import java.io.OutputStream;
 
 import com.sensetime.stmobileapi.STMobileApiBridge.ResultCode;
 import com.sensetime.stmobileapi.STMobileApiBridge.st_mobile_106_t;
+import com.sensetime.stmobileapi.STMobileApiBridge.st_mobile_face_action_t;
+
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
@@ -25,9 +27,11 @@ public class STMobileMultiTrack106 {
     public static int ST_MOBILE_TRACKING_SINGLE_THREAD = 0x00000001;
     
 	private Context mContext;
-	private static final String BEAUTIFY_MODEL_NAME = "track_compose.model";
+    private static final String BEAUTIFY_MODEL_NAME = "track_face_action1.0.0.model";
       
     PointerByReference ptrToArray = new PointerByReference();
+    PointerByReference faceAction_ptrToArray = new PointerByReference();
+
     IntByReference ptrToSize = new IntByReference();
     
     /**
@@ -246,4 +250,67 @@ public class STMobileMultiTrack106 {
         
         return ret;
     }
+
+    /**
+     * Given the Image by Byte to trace face action
+     * @param image Input image by byte
+     * @param orientation Image orientation
+     * @param width Image width
+     * @param height Image height
+     * @return CvFace action array, each one in array is Detected by SDK native API
+     * */
+    public STMobileFaceAction[] trackFaceAction(byte[] image, int orientation, int width, int height) {
+        if(DEBUG) {
+            System.out.println("SampleTrackFaceAction-------->CvFaceMultiTrack--------->trackFaceAction1");
+        }
+        return trackFaceAction(image, STImageFormat.ST_PIX_FMT_NV21, width, height, width, orientation);
+    }
+
+    /**
+     *  Given the Image by Byte Array to track face action
+     *  @param colorImage Input image by byte
+     *  @param cvImageFormat Image format
+     *  @param imageWidth Image width
+     *  @param imageHeight Image height
+     *  @param imageStride Image stride
+     *  @param orientation Image orientation
+     *  @return CvFace action array, each one in array is Detected by SDK native API
+     * */
+    public STMobileFaceAction[] trackFaceAction(byte[] colorImage, int cvImageFormat, int imageWidth, int imageHeight, int imageStride, int orientation) {
+        if(DEBUG) {
+            System.out.println("SampleTrackFaceAction-------->CvFaceMultiTrack--------->trackFaceAction2");
+        }
+
+        if(trackHandle == null) {
+            return null;
+        }
+
+        long startTime = System.currentTimeMillis();
+        int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_track_face_action(trackHandle, colorImage, cvImageFormat, imageWidth,
+                imageHeight, imageStride, orientation, faceAction_ptrToArray, ptrToSize);
+        long endTime = System.currentTimeMillis();
+        if(DEBUG)Log.d("trackFaceAction", "multi track face action time: "+(endTime-startTime)+"ms");
+
+        if(rst != ResultCode.ST_OK.getResultCode()) {
+            throw new RuntimeException("Calling cv_face_action_multi_track() method failed! ResultCode=" + rst);
+        }
+
+        if(ptrToSize.getValue() == 0) {
+            return new STMobileFaceAction[0];
+        }
+
+        st_mobile_face_action_t arrayRef = new st_mobile_face_action_t(faceAction_ptrToArray.getValue());
+        arrayRef.read();
+        st_mobile_face_action_t[] array = st_mobile_face_action_t.arrayCopy((st_mobile_face_action_t[]) arrayRef.toArray(ptrToSize.getValue()));
+
+        STMobileFaceAction[] ret = new STMobileFaceAction[array.length];
+        for(int i=0; i<array.length; i++) {
+            ret[i] = new STMobileFaceAction(array[i]);
+        }
+
+        if(DEBUG)Log.d("STMobileMultiTrack106", "face action track ret = "+ ret);
+
+        return ret;
+    }
+
 }

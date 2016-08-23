@@ -17,11 +17,25 @@
     </fragment> 	
 	    	    
 	</com.sample.multitrack106.FixedAspectRatioFrameLayout>
-			<TextView
-	    	    android:layout_width="wrap_content"
-	    	    android:layout_height="wrap_content"
-	    	    android:id="@+id/fpstext"
-	    	    android:text="sd"
-	    	    android:layout_below="@+id/framelayout"
-	    	    />
+	
+    <LinearLayout
+       android:layout_width="match_parent"
+       android:layout_height="wrap_content"
+       android:orientation="horizontal"
+       android:layout_below="@+id/framelayout">
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/fpstext"
+            android:layout_weight="1"
+            android:text="sd"
+            />
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:id="@+id/actionText"
+            android:layout_weight="1"
+            android:text="FaceAction" />
+    </LinearLayout>
+	
 </RelativeLayout>

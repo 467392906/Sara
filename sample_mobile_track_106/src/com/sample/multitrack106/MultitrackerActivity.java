@@ -16,7 +16,7 @@ import android.widget.TextView;
 public class MultitrackerActivity extends Activity {
 	
 	static MultitrackerActivity instance = null;
-	TextView fpstText;
+    TextView fpstText, actionText;
 	
 	/**
 	 * 
@@ -30,6 +30,7 @@ public class MultitrackerActivity extends Activity {
 		super.onCreate(savedInstanceState);
 		setContentView(R.layout.activity_multitracker);
 		fpstText = (TextView)findViewById(R.id.fpstext);
+        actionText = (TextView) findViewById(R.id.actionText);
 		instance = this;
 		
 		/**
@@ -55,13 +56,15 @@ public class MultitrackerActivity extends Activity {
 		fragment.registTrackCallback(new FaceOverlapFragment.TrackCallBack() {
 			
 			@Override
-			public void onTrackdetected(final int value, final float pitch, final float roll, final float yaw) {
+            public void onTrackdetected(final int value, final float pitch, final float roll, final float yaw, final int eye_dist,
+                            final int id, final int eyeBlink, final int mouthAh, final int headYaw, final int headPitch, final int browJump) {
 				// TODO Auto-generated method stub
 				
 				runOnUiThread(new Runnable() {
 					@Override
 					public void run() {
-						fpstText.setText("FPS: " + value+"\nPITCH: "+pitch+"\nROLL: "+roll+"\nYAW: "+yaw);
+                        fpstText.setText("FPS: " + value+"\nPITCH: "+pitch+"\nROLL: "+roll+"\nYAW: "+yaw+"\nEYE_DIST:"+eye_dist);
+                        actionText.setText("ID:"+id+"\nEYE_BLINK:"+eyeBlink+"\nMOUTH_AH:"+mouthAh+"\nHEAD_YAW:"+headYaw+"\nHEADPITCH:"+headPitch+"\nBROWJUMP:"+browJump);
 					}
 				});
 			}

@@ -98,6 +98,55 @@ public interface STMobileApiBridge extends Library {
         }
     }
 
+    /**
+     * face信息及face上的相关动作
+
+     typedef struct st_mobile_face_action_t {
+         struct st_mobile_106_t face;          /// 人脸信息，包含矩形、106点、pose信息等//
+         unsigned int face_action;             /// 脸部动作
+     } st_mobile_face_action_t;
+
+     * */
+
+    class st_mobile_face_action_t extends Structure {
+        public st_mobile_106_t face;
+        public int face_action;
+
+        public st_mobile_face_action_t() {
+            super();
+        }
+
+        public st_mobile_face_action_t(Pointer p) {
+            super(p);
+        }
+
+        @Override
+        protected List getFieldOrder() {
+            return Arrays.asList(new String[] {"face", "face_action"});
+        }
+
+        @Override
+        protected Object clone() throws CloneNotSupportedException {
+            st_mobile_face_action_t copy = new st_mobile_face_action_t();
+            copy.face = this.face;
+            copy.face_action = this.face_action;
+
+            return copy;
+        }
+
+        public static st_mobile_face_action_t[] arrayCopy(st_mobile_face_action_t[] origin) {
+            st_mobile_face_action_t[] copy = new st_mobile_face_action_t[origin.length];
+            for(int i=0; i<origin.length; i++) {
+                try {
+                    copy[i] = (st_mobile_face_action_t) origin[i].clone();
+                } catch (CloneNotSupportedException e) {
+                    e.printStackTrace();
+                }
+            }
+            return copy;
+        }
+    }
+    
     enum ResultCode {
         ST_OK(0),
         ST_E_INVALIDARG(-1),
@@ -191,9 +240,28 @@ public interface STMobileApiBridge extends Library {
         	IntByReference p_faces_count
         );
     
-  /// @brief 释放实时人脸106关键点跟踪返回结果时分配的空间
-  /// @param faces_array 跟踪到到的人脸信息数组
-  /// @param faces_count 跟踪到的人脸数量
+  /// @brief 对连续视频帧进行实时快速人脸106关键点跟踪，并检测脸部动作
+    /// @param handle 已初始化的实时人脸跟踪句柄
+    /// @param image 用于检测的图像数据
+    /// @param pixel_format 用于检测的图像数据的像素格式,都支持，不推荐BGRA和BGR，会慢
+    /// @param image_width 用于检测的图像的宽度(以像素为单位)
+    /// @param image_height 用于检测的图像的高度(以像素为单位)
+    /// @param[in] image_stride 用于检测的图像的跨度(以像素为单位)，即每行的字节数；目前仅支持字节对齐的padding，不支持roi
+    /// @param orientation 视频中人脸的方向
+    /// @param p_face_action_array 检测到的人脸106点信息和脸部动作的数组，api负责管理内存，会覆盖上一次调用获取到的数据
+    /// @param p_faces_count 检测到的人脸数量
+    /// @return 成功返回ST_OK，失败返回其他错误码,错误码定义在st_common.h 中，如ST_E_FAIL等
+    int st_mobile_tracker_106_track_face_action(
+            Pointer handle,
+            byte[] image,
+            int pixel_format,
+            int image_width,
+            int image_height,
+            int image_stride,
+            int orientation,
+            PointerByReference p_face_action_array,
+            IntByReference p_faces_count
+    );
     void st_mobile_tracker_106_release_result(Pointer faces_array, int faces_count);
  
   /// @brief 销毁已初始化的track106句柄
