@@ -58,6 +58,8 @@ import java.net.InetAddress;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 /**
  * Created by jerikc on 15/7/6.
@@ -149,6 +151,10 @@ public class StreamingBaseActivity extends Activity implements
 
     private Screenshooter mScreenshooter = new Screenshooter();
     private EncodingOrientationSwitcher mEncodingOrientationSwitcher = new EncodingOrientationSwitcher();
+
+    private int processors = Runtime.getRuntime().availableProcessors();
+    ExecutorService executor = Executors.newFixedThreadPool(processors);
+    private int initStickerResult = 0;
 
     protected Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -278,7 +284,9 @@ public class StreamingBaseActivity extends Activity implements
         mChangeStickerBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                changeSticker();
+                if(initStickerResult == 0) {
+                    executor.execute(new ChangeStickerTask());
+                }
             }
         });
 
@@ -323,6 +331,7 @@ public class StreamingBaseActivity extends Activity implements
     protected void onDestroy() {
         super.onDestroy();
         mCameraStreamingManager.destroy();
+        executor.shutdown();
     }
 
     protected void setShutterButtonPressed(final boolean pressed) {
@@ -1141,14 +1150,23 @@ public class StreamingBaseActivity extends Activity implements
         Log.i(TAG,"the result for createInstance for sticker is "+result1);
     }
 
-    private void changeSticker(){
-        mCurrentStickerNum ++;
-        if(mCurrentStickerNum == mStickerFilesList.size()){
+    public class ChangeStickerTask implements Runnable{
+
+        @Override
+        public void run() {
+            changeSticker();
+        }
+    }
+
+    private synchronized int changeSticker(){
+        mCurrentStickerNum++;
+        if (mCurrentStickerNum == mStickerFilesList.size()) {
             mCurrentStickerNum = 0;
         }
         mStickerFolderPath = mStickerFilesList.get(mCurrentStickerNum);
-        int result  = mStStickerNative.changeSticker(mStickerFolderPath);
-        Log.i(TAG,"the result for changesticker is "+result);
+        int result = mStStickerNative.changeSticker(mStickerFolderPath);
+        initStickerResult = result;
+        return result;
     }
     //fenghx
 }
