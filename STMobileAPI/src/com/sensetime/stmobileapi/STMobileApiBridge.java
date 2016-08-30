@@ -181,6 +181,21 @@ public interface STMobileApiBridge extends Library {
      */
     STMobileApiBridge FACESDK_INSTANCE = (STMobileApiBridge) Native.loadLibrary("st_mobile", STMobileApiBridge.class);
 
+	/// @brief 根据授权文件生成激活码, 在使用新的license文件时使用
+  /// @param[in] product_name 产品名称
+  /// @param[in] license_path license文件路径
+  /// @param[out] active_code 返回当前设备的激活码，由用户分配内存，请分配至少129个字节，建议分配1024字节
+  /// @param[in，out] active_code_len  输入为active_code的内存大小, 返回当前设备的激活码字节长度
+  /// @return 正常返回ST_OK，否则返回错误类型
+   int st_mobile_generate_activecode(String product_name, String license_path, Pointer activation_code, IntByReference activation_code_len);
+
+   /// @brief 检查激活码, 必须在所有接口之前调用
+   /// @param[in] product_name 产品名称
+   /// @param[in] license_path license文件路径
+   /// @param[in] active_path 当前设备的激活码
+   /// @return 正常返回ST_OK，否则返回错误类型
+   int st_mobile_check_activecode(String product_name, String license_path, String activation_code);
+
     //cv_mobile_face_106
   /// @brief 创建实时人脸106关键点跟踪句柄
   /// @param[in] model_path 模型文件的绝对路径或相对路径，若不指定模型可为NULL; 模型中包含detect+align+pose模型

@@ -31,7 +31,9 @@ import android.view.ViewGroup;
  */
 public class FaceOverlapFragment extends CameraOverlapFragment {
     ///< 检测脸部动作：张嘴、眨眼、抬眉、点头、摇头
-    private static final int ST_MOBILE_TRACKING_ENABLE_FACE_ACTION = 0x00000020;
+    private static final int ST_MOBILE_TRACKING_MULTI_THREAD = 0x00000000;
+    private static final int ST_MOBILE_TRACKING_RESIZE_IMG_320W = 0x00000001;
+    private static final int ST_MOBILE_TRACKING_DEFAULT_CONFIG = ST_MOBILE_TRACKING_MULTI_THREAD | ST_MOBILE_TRACKING_RESIZE_IMG_320W;
     private static final int ST_MOBILE_FACE_DETECT   =  0x00000001;    ///<  人脸检测
     private static final int ST_MOBILE_EYE_BLINK     =  0x00000002;  ///<  眨眼
     private static final int ST_MOBILE_MOUTH_AH      =  0x00000004;    ///<  嘴巴大张
@@ -85,7 +87,7 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 
 		if (tracker == null) {
 			long start_init = System.currentTimeMillis();
-            int config = ST_MOBILE_TRACKING_ENABLE_FACE_ACTION;
+            int config = ST_MOBILE_TRACKING_DEFAULT_CONFIG;
 			tracker = new STMobileMultiTrack106(getActivity(), config);
 			int max = 40;
 			tracker.setMaxDetectableFaces(max);
