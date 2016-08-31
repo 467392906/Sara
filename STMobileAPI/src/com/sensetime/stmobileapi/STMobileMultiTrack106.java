@@ -84,7 +84,7 @@ public class STMobileMultiTrack106 {
         boolean isFirst = sp.getBoolean("isFirst", true);
         int rst = Integer.MIN_VALUE;
         if(isFirst) {
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode("SenseME_106", licensePath, generatedActiveCode, codeLen);
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode( licensePath, generatedActiveCode, codeLen);
             if(rst != ResultCode.ST_OK.getResultCode()) {
                 Log.e(TAG, "-->> generate active code failed!");
                 return false;
@@ -104,17 +104,17 @@ public class STMobileMultiTrack106 {
             return false;
         }
 
-        rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode("SenseME_106", licensePath, activeCode);
+        rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode( licensePath, activeCode);
         if(rst != ResultCode.ST_OK.getResultCode()) {
             // check失败，也有可能是新的license替换，但是还是用的原来lincense生成的activecode。在这里重新生成一次activecode
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode("SenseME_106", licensePath, generatedActiveCode, codeLen);
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode( licensePath, generatedActiveCode, codeLen);
 
             if(rst != ResultCode.ST_OK.getResultCode()) {
                 Log.e(TAG, "-->> again generate active code failed! license may invalide");
                 return false;
             }
             activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode("SenseME_106", licensePath, activeCode);
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode( licensePath, activeCode);
             if(rst != ResultCode.ST_OK.getResultCode()) {
                 Log.e(TAG, "-->> again invalide active code, you need a new license");
                 return false;
