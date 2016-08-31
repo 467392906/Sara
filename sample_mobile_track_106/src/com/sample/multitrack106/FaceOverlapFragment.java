@@ -159,11 +159,13 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 					}
 					fps = timeCounter.size() - start;
 					try {
-						int length = (faceActions == null ?  0 : faceActions.length - 1);
-						STMobileFaceAction faceAction = faceActions[length];
-                        mListener.onTrackdetected(fps,  faceAction.face.pitch, faceAction.face.roll, faceAction.face.yaw, faceAction.face.eye_dist, faceAction.face.ID,
-                                        checkFlag(faceAction.face_action, ST_MOBILE_EYE_BLINK), checkFlag(faceAction.face_action, ST_MOBILE_MOUTH_AH), checkFlag(faceAction.face_action, ST_MOBILE_HEAD_YAW),
-                                        checkFlag(faceAction.face_action, ST_MOBILE_HEAD_PITCH), checkFlag(faceAction.face_action, ST_MOBILE_BROW_JUMP));
+						if (faceActions != null && faceActions.length > 0) {
+							int length = (faceActions == null ?  0 : faceActions.length - 1);
+							STMobileFaceAction faceAction = faceActions[length];
+	                        mListener.onTrackdetected(fps,  faceAction.face.pitch, faceAction.face.roll, faceAction.face.yaw, faceAction.face.eye_dist, faceAction.face.ID,
+	                                        checkFlag(faceAction.face_action, ST_MOBILE_EYE_BLINK), checkFlag(faceAction.face_action, ST_MOBILE_MOUTH_AH), checkFlag(faceAction.face_action, ST_MOBILE_HEAD_YAW),
+	                                        checkFlag(faceAction.face_action, ST_MOBILE_HEAD_PITCH), checkFlag(faceAction.face_action, ST_MOBILE_BROW_JUMP));
+						}
 					} catch(Exception e) {
 						e.printStackTrace();
 					}

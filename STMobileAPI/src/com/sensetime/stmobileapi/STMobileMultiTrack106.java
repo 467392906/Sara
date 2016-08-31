@@ -360,7 +360,9 @@ public class STMobileMultiTrack106 {
         if(DEBUG)Log.d("trackFaceAction", "multi track face action time: "+(endTime-startTime)+"ms");
 
         if(rst != ResultCode.ST_OK.getResultCode()) {
-            throw new RuntimeException("Calling cv_face_action_multi_track() method failed! ResultCode=" + rst);
+            //throw new RuntimeException("Calling cv_face_action_multi_track() method failed! ResultCode=" + rst);
+        	Log.e(TAG, "Calling st_mobile_tracker_106_track_face_action method failed! ResultCode=" + rst);
+        	return null;
         }
 
         if(ptrToSize.getValue() == 0) {
