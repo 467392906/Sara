@@ -36,7 +36,9 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
     ///< 检测脸部动作：张嘴、眨眼、抬眉、点头、摇头
     private static final int ST_MOBILE_TRACKING_MULTI_THREAD = 0x00000000;
     private static final int ST_MOBILE_TRACKING_RESIZE_IMG_320W = 0x00000001;
-    private static final int ST_MOBILE_TRACKING_DEFAULT_CONFIG = ST_MOBILE_TRACKING_MULTI_THREAD | ST_MOBILE_TRACKING_RESIZE_IMG_320W;
+    private static final int ST_MOBILE_TRACKING_ENABLE_DEBOUNCE  = 0x00000010;
+    private static final int ST_MOBILE_TRACKING_ENABLE_FACE_ACTION   = 0x00000020;
+    private static final int ST_MOBILE_TRACKING_DEFAULT_CONFIG = ST_MOBILE_TRACKING_MULTI_THREAD | ST_MOBILE_TRACKING_RESIZE_IMG_320W ;
     private static final int ST_MOBILE_FACE_DETECT   =  0x00000001;    ///<  人脸检测
     private static final int ST_MOBILE_EYE_BLINK     =  0x00000002;  ///<  眨眼
     private static final int ST_MOBILE_MOUTH_AH      =  0x00000004;    ///<  嘴巴大张
@@ -97,7 +99,7 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 
 		if (tracker == null) {
 			long start_init = System.currentTimeMillis();
-            int config = ST_MOBILE_TRACKING_DEFAULT_CONFIG;
+            int config = ST_MOBILE_TRACKING_DEFAULT_CONFIG | ST_MOBILE_TRACKING_ENABLE_DEBOUNCE | ST_MOBILE_TRACKING_ENABLE_FACE_ACTION;
 			tracker = new STMobileMultiTrack106(getActivity(), config);
 			int max = 40;
 			tracker.setMaxDetectableFaces(max);
@@ -157,9 +159,11 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 					}
 					fps = timeCounter.size() - start;
 					try {
-                        mListener.onTrackdetected(fps,  faceActions[0].face.pitch, faceActions[0].face.roll, faceActions[0].face.yaw, faceActions[0].face.eye_dist, faceActions[0].face.ID,
-                                        checkFlag(faceActions[0].face_action, ST_MOBILE_EYE_BLINK), checkFlag(faceActions[0].face_action, ST_MOBILE_MOUTH_AH), checkFlag(faceActions[0].face_action, ST_MOBILE_HEAD_YAW),
-                                        checkFlag(faceActions[0].face_action, ST_MOBILE_HEAD_PITCH), checkFlag(faceActions[0].face_action, ST_MOBILE_BROW_JUMP));
+						int length = (faceActions == null ?  0 : faceActions.length - 1);
+						STMobileFaceAction faceAction = faceActions[length];
+                        mListener.onTrackdetected(fps,  faceAction.face.pitch, faceAction.face.roll, faceAction.face.yaw, faceAction.face.eye_dist, faceAction.face.ID,
+                                        checkFlag(faceAction.face_action, ST_MOBILE_EYE_BLINK), checkFlag(faceAction.face_action, ST_MOBILE_MOUTH_AH), checkFlag(faceAction.face_action, ST_MOBILE_HEAD_YAW),
+                                        checkFlag(faceAction.face_action, ST_MOBILE_HEAD_PITCH), checkFlag(faceAction.face_action, ST_MOBILE_BROW_JUMP));
 					} catch(Exception e) {
 						e.printStackTrace();
 					}
