@@ -74,6 +74,7 @@ public class STMobileMultiTrack106 {
         		return;
         	}
         	trackHandle = handlerPointer.getValue();
+        	STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_set_smooth_threshold(trackHandle, 0f);
         }
     }
     
@@ -88,6 +89,7 @@ public class STMobileMultiTrack106 {
                 Log.e(TAG, "-->> generate active code failed!");
                 return false;
             }
+            
 
             String activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));//            String activeCode = Native.toString(generatedActiveCode);
             SharedPreferences.Editor editor = sp.edit();

@@ -17,9 +17,11 @@ import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Matrix;
+import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.Rect;
 import android.graphics.Bitmap.Config;
+import android.graphics.Paint.Style;
 import android.net.Uri;
 import android.opengl.GLES10;
 import android.os.Bundle;
@@ -46,6 +48,7 @@ public class FaceDetectActivity extends Activity implements OnClickListener {
 	private int mImageWidth;
 	private int mImageHeight;
 	private Button mFaceDetectBtn; 
+	private Paint mPaint;
 
 
     @Override
@@ -139,6 +142,11 @@ public class FaceDetectActivity extends Activity implements OnClickListener {
 	            			 mImageView.setImageBitmap(mSrcbmp);
 	            		     mImageWidth = mSrcbmp.getWidth();
 	            		     mImageHeight = mSrcbmp.getHeight();
+            				mPaint = new Paint(); 
+            				mPaint.setColor(Color.rgb(57, 138, 243));
+            				int strokeWidth = Math.max(mImageHeight / 240, 2);
+            				mPaint.setStrokeWidth(strokeWidth);
+            				mPaint.setStyle(Style.FILL);
 	            		     initFaceDetect();
 	            		 }
 	                 } catch (Exception e) {
@@ -300,7 +308,7 @@ public class FaceDetectActivity extends Activity implements OnClickListener {
 
 				STUtils.drawFaceRect(canvas, rect, mImageHeight,
 						mImageWidth, false);
-				STUtils.drawPoints(canvas, points, mImageHeight,
+				STUtils.drawPoints(canvas, mPaint, points, mImageHeight,
 						mImageWidth, false);
 			}
 		}

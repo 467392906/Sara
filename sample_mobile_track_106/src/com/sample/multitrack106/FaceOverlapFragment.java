@@ -11,9 +11,12 @@ import com.sensetime.stmobileapi.STUtils;
 import android.annotation.SuppressLint;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.graphics.PointF;
 import android.graphics.PorterDuff;
 import android.graphics.Rect;
+import android.graphics.Paint.Style;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Bundle;
@@ -51,7 +54,8 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 	public static int fps;
 	static boolean DEBUG = false;
 	private boolean isNV21ready = false;
-
+	private Paint mPaint;
+	
 	@SuppressLint("NewApi")
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -59,6 +63,12 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 		View view = super.onCreateView(inflater, container, savedInstanceState);
 
 		nv21 = new byte[PREVIEW_WIDTH * PREVIEW_HEIGHT * 2];
+
+		mPaint = new Paint(); 
+		mPaint.setColor(Color.rgb(57, 138, 243));
+		int strokeWidth = Math.max(PREVIEW_HEIGHT / 240, 2);
+		mPaint.setStrokeWidth(strokeWidth);
+		mPaint.setStyle(Style.FILL);
 
 		this.setPreviewCallback(new PreviewCallback() {
 			@Override
@@ -198,7 +208,7 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 							}
 							STUtils.drawFaceRect(canvas, rect, PREVIEW_HEIGHT,
 									PREVIEW_WIDTH, frontCamera);
-							STUtils.drawPoints(canvas, points, PREVIEW_HEIGHT,
+							STUtils.drawPoints(canvas, mPaint, points, PREVIEW_HEIGHT,
 									PREVIEW_WIDTH, frontCamera);
 
 						}

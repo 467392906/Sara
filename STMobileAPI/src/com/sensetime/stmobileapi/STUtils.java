@@ -184,22 +184,19 @@ public class STUtils {
      * @param height
      * @param frontCamera
      */
-	static public void drawPoints(Canvas canvas, PointF[] points, int width, int height, boolean frontCamera) {
+	static public void drawPoints(Canvas canvas, Paint paint, PointF[] points, int width, int height, boolean frontCamera) {
 
 		if(canvas == null) return;
-
-		Paint paint = new Paint(); 
-		paint.setColor(Color.rgb(57, 138, 243));
-		int strokeWidth = Math.max(width / 240, 2);
-		paint.setStrokeWidth(strokeWidth);
-		paint.setStyle(Style.STROKE);
+//		paint.setStyle(Style.STROKE);
 
 		for (PointF point : points) {
 			PointF p = point;
 			if(frontCamera) {
 				p.x = width - p.x;
 			}
-			canvas.drawPoint(p.x, p.y, paint);
+			canvas.drawCircle(p.x, p.y, 2, paint);
+			
+//			canvas.drawPoint(p.x, p.y, paint);
 		}
 	}
 

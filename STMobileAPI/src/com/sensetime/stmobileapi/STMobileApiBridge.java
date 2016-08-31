@@ -204,6 +204,7 @@ public interface STMobileApiBridge extends Library {
   /// @return 成功返回CV_OK, 失败返回其他错误信息
     int st_mobile_tracker_106_create(String model_path, int config, PointerByReference handle);
     
+	 int st_mobile_tracker_106_set_smooth_threshold(Pointer handle, float threshold);
   /// @brief 设置检测到的最大人脸数目N，持续track已检测到的N个人脸直到人脸数小于N再继续做detect.
   /// @param[in] handle 已初始化的关键点跟踪句柄
   /// @param[in] max_facecount 设置为1即是单脸跟踪，有效范围为[1, 32]

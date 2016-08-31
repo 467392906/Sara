@@ -8,11 +8,13 @@ import java.io.OutputStream;
 
 import com.sensetime.stmobileapi.STMobileApiBridge.ResultCode;
 import com.sensetime.stmobileapi.STMobileApiBridge.st_mobile_106_t;
+import com.sun.jna.Memory;
 import com.sun.jna.Pointer;
 import com.sun.jna.ptr.IntByReference;
 import com.sun.jna.ptr.PointerByReference;
 
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.util.Log;
 
@@ -21,10 +23,11 @@ public class STMobileFaceDetection {
 	private Context mContext;
 	private static boolean DEBUG = true;// false;
 	private String TAG = "FaceDetection";
-	private static final String DETECTION_MODEL_NAME = "track_compose.model";
-	public static int ST_MOBILE_DETECT_DEFAULT_CONFIG = 0x00000000;  ///< 默认选项
-	public static int ST_MOBILE_DETECT_FAST = 0x00000001;  ///< resize图像为长边320的图像之后再检测，结果处理为原图像对应结果
-	public static int ST_MOBILE_DETECT_BALANCED = 0x00000002;  ///< resize图像为长边640的图像之后再检测，结果处理为原图像对应结果
+	private static final String DETECTION_MODEL_NAME = "face_track_2.0.0.model";
+	private static final String LICENSE_NAME = "SENSEME_106.lic";
+	public static int ST_MOBILE_DETECT_DEFAULT_CONFIG = 0x00000000;  ///< 榛樿閫夐」
+	public static int ST_MOBILE_DETECT_FAST = 0x00000001;  ///< resize鍥惧儚涓洪暱杈�320鐨勫浘鍍忎箣鍚庡啀妫�娴嬶紝缁撴灉澶勭悊涓哄師鍥惧儚瀵瑰簲缁撴灉
+	public static int ST_MOBILE_DETECT_BALANCED = 0x00000002;  ///< resize鍥惧儚涓洪暱杈�640鐨勫浘鍍忎箣鍚庡啀妫�娴嬶紝缁撴灉澶勭悊涓哄師鍥惧儚瀵瑰簲缁撴灉
 	public static int ST_MOBILE_DETECT_ACCURATE = 0x00000004;
 	
     PointerByReference ptrToArray = new PointerByReference();
@@ -36,14 +39,76 @@ public class STMobileFaceDetection {
 		synchronized(this.getClass())
 		{
 		   copyModelIfNeed(DETECTION_MODEL_NAME);
+		   copyModelIfNeed(LICENSE_NAME);
 		}
 		String modulePath = getModelPath(DETECTION_MODEL_NAME);
-    	int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(modulePath, config, handlerPointer);
-    	if(rst != ResultCode.ST_OK.getResultCode())
-    	{
-    		return;
-    	}
-    	detectHandle = handlerPointer.getValue();
+		String licensePath = getModelPath(LICENSE_NAME);
+
+        int memory_size = 1024;
+        IntByReference codeLen = new IntByReference(1);
+        codeLen.setValue(memory_size);
+         Pointer generateActiveCode = new Memory(memory_size);
+        generateActiveCode.setMemory(0, memory_size, (byte)0);
+
+        if(hasAuthentificatd(context, licensePath, generateActiveCode, codeLen)) {
+        	int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(modulePath, config, handlerPointer);
+        	Log.e(TAG, "-->> create handler rst = "+rst);
+        	if(rst != ResultCode.ST_OK.getResultCode())
+        	{
+        		return;
+        	}
+            detectHandle = handlerPointer.getValue();
+        }
+    }
+    
+ // 授权
+    private boolean hasAuthentificatd(Context context, String licensePath,Pointer generatedActiveCode, IntByReference codeLen) {
+        SharedPreferences sp = context.getSharedPreferences("ActiveCodeFile", 0);
+        boolean isFirst = sp.getBoolean("isFirst", true);
+        int rst = Integer.MIN_VALUE;
+        if(isFirst) {
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode("SenseME_106", licensePath, generatedActiveCode, codeLen);
+            if(rst != ResultCode.ST_OK.getResultCode()) {
+                Log.e(TAG, "-->> generate active code failed!");
+                return false;
+            }
+
+            String activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));//            String activeCode = Native.toString(generatedActiveCode);
+            SharedPreferences.Editor editor = sp.edit();
+            editor.putString("activecode", activeCode);
+            editor.putBoolean("isFirst", false);
+            editor.commit();
+        }
+
+        String activeCode = sp.getString("activecode", "null");
+        if(activeCode==null || activeCode.length()==0) {
+            Log.e(TAG, "-->> activeCode is null in SharedPreference");
+            return false;
+        }
+
+        rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode("SenseME_106", licensePath, activeCode);
+        if(rst != ResultCode.ST_OK.getResultCode()) {
+            // check失败，也有可能是新的license替换，但是还是用的原来lincense生成的activecode。在这里重新生成一次activecode
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode("SenseME_106", licensePath, generatedActiveCode, codeLen);
+
+            if(rst != ResultCode.ST_OK.getResultCode()) {
+                Log.e(TAG, "-->> again generate active code failed! license may invalide");
+                return false;
+            }
+            activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode("SenseME_106", licensePath, activeCode);
+            if(rst != ResultCode.ST_OK.getResultCode()) {
+                Log.e(TAG, "-->> again invalide active code, you need a new license");
+                return false;
+            }
+
+            SharedPreferences.Editor editor = sp.edit();
+            editor.putString("activecode", activeCode);
+            editor.putBoolean("isFirst", false);
+            editor.commit();
+        }
+
+        return true;
     }
     
 	private void copyModelIfNeed(String modelName) {
@@ -51,7 +116,7 @@ public class STMobileFaceDetection {
 		if (path != null) {
 			File modelFile = new File(path);
 			if (!modelFile.exists()) {
-				//如果模型文件不存在或者当前模型文件的版本跟sdcard中的版本不一样
+				//濡傛灉妯″瀷鏂囦欢涓嶅瓨鍦ㄦ垨鑰呭綋鍓嶆ā鍨嬫枃浠剁殑鐗堟湰璺焥dcard涓殑鐗堟湰涓嶄竴鏍�
 				try {
 					if (modelFile.exists())
 						modelFile.delete();
@@ -107,7 +172,7 @@ public class STMobileFaceDetection {
     		Log.d(TAG, "detect bitmap");
     	
         int[] colorImage = STUtils.getBGRAImageByte(image);
-        return detect(colorImage, STImageFormat.ST_PIX_FMT_BGRA8888,image.getWidth(), image.getHeight(), image.getWidth(), orientation);
+        return detect(colorImage, STImageFormat.ST_PIX_FMT_BGRA8888,image.getWidth(), image.getHeight(), image.getWidth() * 4, orientation);
     }
     
     /**
