@@ -143,7 +143,7 @@ public class CameraActivity extends Activity implements OnClickListener{
 		
 		String[] previewSizes = this.getResources().getStringArray(R.array.preview_picturesize);
 		final ArrayList<String> resultSizeList = mCameraDisplay.mCameraProxy.getSupportedPreviewSize(previewSizes);
-		ArrayAdapter<String> adapter = new ArrayAdapter<>(this, R.layout.previewsize_spinner, resultSizeList);
+		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, R.layout.previewsize_spinner, resultSizeList);
 		mPreviewSizeSpinner.setAdapter(adapter);
 		adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
 		mPreviewSizeSpinner.setOnItemSelectedListener(new OnItemSelectedListener() {

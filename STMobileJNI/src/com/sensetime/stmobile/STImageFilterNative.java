@@ -9,6 +9,10 @@ public class STImageFilterNative {
 	
 	private long nativeHandle;
 	
+	public static native String generateActivateCode(String licensePath, String activateCode);
+
+	public static native int checkActivateCode(String licensePath, String activateCode);
+
 	public native int initBeautify(int width, int height);
 
 	public native int setParam(int type, float value);

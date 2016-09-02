@@ -8,7 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "prebuilt/include/st_mobile.h"
+#include "prebuilt/include/st_mobile_beautify.h"
 #include "jni_common.h"
 
 #define  LOG_TAG    "STMobileFilter"
@@ -28,6 +28,8 @@ unsigned char* as_unsigned_char_array(JNIEnv *env, jbyteArray array) {
 }
 
 extern "C" {
+JNIEXPORT jstring JNICALL Java_com_sensetime_stmobile_STImageFilterNative_generateActivateCode(JNIEnv * env, jobject obj, jstring licensePath, jstring activateCode);
+JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_checkActivateCode(JNIEnv * env, jobject obj, jstring licensePath, jstring activateCode);
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_initBeautify(JNIEnv * env, jobject obj,jint width, jint height);
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_stColorConvert(JNIEnv * env, jobject obj, jbyteArray imagesrc, jbyteArray imagedst, jint imageWidth, jint imageHeight, jint type);
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_setParam(JNIEnv * env, jobject obj, jint type, jfloat value);
@@ -36,6 +38,43 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processBu
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processTexture(JNIEnv * env, jobject obj,jint textureIn, jint outputWidth, jint outputHeight, jint textureOut);
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_destoryBeautify(JNIEnv * env, jobject obj);
 };
+
+
+JNIEXPORT jstring JNICALL Java_com_sensetime_stmobile_STImageFilterNative_generateActivateCode(JNIEnv * env, jobject obj, jstring licensePath, jstring activateCode)
+{
+	LOGE("-->> enter generateActivateCode");
+	int ret = 0;
+
+	char *pPath = (char *)env->GetStringUTFChars(licensePath, 0);
+
+	int len = 1024;
+	char arrCode[len] = {0};
+	LOGE("-->> pPath=%s, arrCode=%s, len=%d", pPath, arrCode, len);
+	ret = st_mobile_generate_activecode(pPath, arrCode, &len);
+	if (ret == 0) {
+	    activateCode = env->NewStringUTF(arrCode);
+	}
+
+	env->ReleaseStringUTFChars(licensePath, pPath);
+	LOGE("-->> exit generateActivateCode");
+	return activateCode;
+}
+
+JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_checkActivateCode(JNIEnv * env, jobject obj, jstring licensePath, jstring activateCode)
+{
+	int ret = 0;
+	char *pCode = (char *)env->GetStringUTFChars(activateCode, 0);
+	char *pPath = (char *)env->GetStringUTFChars(licensePath, 0);
+
+	ret = st_mobile_check_activecode(pPath, pCode);
+
+	env->ReleaseStringUTFChars(activateCode, pCode);
+	env->ReleaseStringUTFChars(licensePath, pPath);
+
+	return ret;
+}
+
+
 
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_initBeautify(JNIEnv * env, jobject obj,jint width, jint height)
 {
