@@ -239,7 +239,6 @@ public class STMobileMultiTrack106 {
         st_mobile_106_t arrayRef = new st_mobile_106_t(ptrToArray.getValue());
         arrayRef.read();
         st_mobile_106_t[] array = st_mobile_106_t.arrayCopy((st_mobile_106_t[]) arrayRef.toArray(ptrToSize.getValue()));
-        STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_release_result(ptrToArray.getValue(), ptrToSize.getValue());
         
         STMobile106[] ret = new STMobile106[array.length]; 
         for (int i = 0; i < array.length; i++) {
@@ -307,7 +306,6 @@ public class STMobileMultiTrack106 {
         st_mobile_106_t arrayRef = new st_mobile_106_t(ptrToArray.getValue());
         arrayRef.read();
         st_mobile_106_t[] array = st_mobile_106_t.arrayCopy((st_mobile_106_t[]) arrayRef.toArray(ptrToSize.getValue()));
-        STMobileApiBridge.FACESDK_INSTANCE.st_mobile_tracker_106_release_result(ptrToArray.getValue(), ptrToSize.getValue());
         
         STMobile106[] ret = new STMobile106[array.length]; 
         for (int i = 0; i < array.length; i++) {
