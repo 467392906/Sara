@@ -78,7 +78,6 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_setParam(
 
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processBufferWithCurrentContext(JNIEnv * env, jobject obj,jbyteArray pInputImage, jint informat, jint outputWidth, jint outputHeight, jbyteArray pOutputImage, jint outformat)
 {
-	LOGE("Enter processBuffer");
     st_handle_t handle = getHandle<st_handle_t>(env, obj);
 
     if(handle == NULL)
@@ -108,13 +107,11 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processBu
     int result = (int)st_mobile_beautify_process_buffer(handle,(unsigned char *)srcdata, (st_pixel_format)pixel_format, outputWidth, outputHeight, stride,(unsigned char*)dstdata,(st_pixel_format)outformat);
     env->ReleasePrimitiveArrayCritical(pInputImage, srcdata, 0);
     env->ReleasePrimitiveArrayCritical(pOutputImage, dstdata, 0);
-	LOGE("Exit processBuffer");
 	return result;
 }
 
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processBufferWithNewContext(JNIEnv * env, jobject obj,jbyteArray pInputImage, jint informat, jint outputWidth, jint outputHeight, jbyteArray pOutputImage, jint outformat)
 {
-	LOGE("Enter processPicture");
     st_handle_t handle = getHandle<st_handle_t>(env, obj);
 
     if(handle == NULL)
@@ -144,14 +141,11 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processBu
     int result = (int)st_mobile_beautify_process_picture(handle,(unsigned char *)srcdata, (st_pixel_format)pixel_format, outputWidth, outputHeight, stride,(unsigned char*)dstdata,(st_pixel_format)outformat);
     env->ReleasePrimitiveArrayCritical(pInputImage, srcdata, 0);
     env->ReleasePrimitiveArrayCritical(pOutputImage, dstdata, 0);
-	LOGE("Exit processPicture");
 	return result;
 }
 
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processTexture(JNIEnv * env, jobject obj,jint textureIn, jint outputWidth, jint outputHeight, jint textureOut)
 {
-	LOGE("Enter processTexture, the texture in ID is %d",textureIn);
-
     st_handle_t handle = getHandle<st_handle_t>(env, obj);
 
     if(handle == NULL)
@@ -166,7 +160,6 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processTe
 
 	int result = (int)st_mobile_beautify_process_texture(handle, textureIn,
 			outputWidth, outputHeight,textureOut);
-	LOGE("Exit processTexture, the result is %d", result);
 
 //	env->ReleasePrimitiveArrayCritical(textureOut, textureId, 0);
 	return result;
@@ -174,7 +167,6 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_processTe
 
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STImageFilterNative_destoryBeautify(JNIEnv * env, jobject obj)
 {
-	LOGI("Enter destoryBeautify");
 	st_handle_t handle = getHandle<st_handle_t>(env, obj);
     if(handle == NULL)
     {
