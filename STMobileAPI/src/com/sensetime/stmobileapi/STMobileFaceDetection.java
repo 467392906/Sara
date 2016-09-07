@@ -1,9 +1,11 @@
 package com.sensetime.stmobileapi;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 
 import com.sensetime.stmobileapi.STMobileApiBridge.ResultCode;
@@ -23,6 +25,7 @@ public class STMobileFaceDetection {
 	private Context mContext;
 	private static boolean DEBUG = true;// false;
 	private String TAG = "FaceDetection";
+	private boolean authFromBuffer = true;                  //默认从缓存读取license来认证
 	private static final String DETECTION_MODEL_NAME = "face_track_2.0.0.model";
 	private static final String LICENSE_NAME = "SENSEME_106.lic";
 	public static int ST_MOBILE_DETECT_DEFAULT_CONFIG = 0x00000000;  ///< 榛樿閫夐」
@@ -39,10 +42,11 @@ public class STMobileFaceDetection {
 		synchronized(this.getClass())
 		{
 		   copyModelIfNeed(DETECTION_MODEL_NAME);
-		   copyModelIfNeed(LICENSE_NAME);
+            if(!authFromBuffer) {                   //if authentificate by sdCard
+                copyModelIfNeed(LICENSE_NAME);
+            }
 		}
 		String modulePath = getModelPath(DETECTION_MODEL_NAME);
-		String licensePath = getModelPath(LICENSE_NAME);
 
         int memory_size = 1024;
         IntByReference codeLen = new IntByReference(1);
@@ -50,18 +54,96 @@ public class STMobileFaceDetection {
          Pointer generateActiveCode = new Memory(memory_size);
         generateActiveCode.setMemory(0, memory_size, (byte)0);
 
-        if(hasAuthentificatd(context, licensePath, generateActiveCode, codeLen)) {
-        	int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(modulePath, config, handlerPointer);
-        	Log.e(TAG, "-->> create handler rst = "+rst);
-        	if(rst != ResultCode.ST_OK.getResultCode())
-        	{
-        		return;
-        	}
-            detectHandle = handlerPointer.getValue();
+        if(authFromBuffer) {
+            // 从缓存读取License来认证
+            String licenseStr = "";
+            try {
+                InputStreamReader isr = new InputStreamReader(context.getResources().getAssets().open(LICENSE_NAME));
+                BufferedReader br = new BufferedReader(isr);
+                String line = "";
+                while((line=br.readLine()) != null) {
+                    licenseStr += line;
+                    licenseStr += "\n";
+                }
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            if(hasAuthentificatedByBuffer(context, licenseStr, generateActiveCode, codeLen)) {
+                int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(modulePath, config, handlerPointer);
+                Log.e(TAG, "-->> create handler rst = " + rst);
+                if (rst != ResultCode.ST_OK.getResultCode()) {
+                    return;
+                }
+                detectHandle = handlerPointer.getValue();
+            }
+        } else {
+            // 从sd卡读取License来认证
+            String licensePath = getModelPath(LICENSE_NAME);
+
+            if (hasAuthentificatd(context, licensePath, generateActiveCode, codeLen)) {
+                int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(modulePath, config, handlerPointer);
+                Log.e(TAG, "-->> create handler rst = " + rst);
+                if (rst != ResultCode.ST_OK.getResultCode()) {
+                    return;
+                }
+                detectHandle = handlerPointer.getValue();
+            }
         }
     }
     
- // 授权
+	// 从Buffer读取License来授权
+    private boolean hasAuthentificatedByBuffer(Context context, String licenseStr, Pointer generatedActiveCode, IntByReference codeLen) {
+        SharedPreferences sp = context.getSharedPreferences("ActiveCodeFile", 0);
+        boolean isFirst = sp.getBoolean("isFirst", true);
+        int rst = Integer.MIN_VALUE;
+        if(isFirst) {
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode_from_buffer(licenseStr, licenseStr.length(), generatedActiveCode, codeLen);
+            if(rst != ResultCode.ST_OK.getResultCode()) {
+                Log.e(TAG, "-->> generate active code failed!");
+                return false;
+            }
+
+            String activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));//            String activeCode = Native.toString(generatedActiveCode);
+            SharedPreferences.Editor editor = sp.edit();
+            editor.putString("activecode", activeCode);
+            editor.putBoolean("isFirst", false);
+            editor.commit();
+        }
+
+        String activeCode = sp.getString("activecode", "null");
+        if(activeCode==null || activeCode.length()==0) {
+            Log.e(TAG, "-->> activeCode is null in SharedPreference");
+            return false;
+        }
+
+        rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode_from_buffer( licenseStr, licenseStr.length(), activeCode);
+        if(rst != ResultCode.ST_OK.getResultCode()) {
+            // check失败，也有可能是新的license替换，但是还是用的原来lincense生成的activecode。在这里重新生成一次activecode
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode_from_buffer(licenseStr, licenseStr.length(), generatedActiveCode, codeLen);
+
+            if(rst != ResultCode.ST_OK.getResultCode()) {
+                Log.e(TAG, "-->> again generate active code failed! license may invalide");
+                return false;
+            }
+            activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));
+            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode_from_buffer( licenseStr, licenseStr.length(), activeCode);
+            if(rst != ResultCode.ST_OK.getResultCode()) {
+                Log.e(TAG, "-->> again invalide active code, you need a new license");
+                return false;
+            }
+
+            SharedPreferences.Editor editor = sp.edit();
+            editor.putString("activecode", activeCode);
+            editor.putBoolean("isFirst", false);
+            editor.commit();
+        }
+
+        return true;
+
+    }
+	
+    // 从SD卡读取License来授权
     private boolean hasAuthentificatd(Context context, String licensePath,Pointer generatedActiveCode, IntByReference codeLen) {
         SharedPreferences sp = context.getSharedPreferences("ActiveCodeFile", 0);
         boolean isFirst = sp.getBoolean("isFirst", true);
@@ -212,6 +294,7 @@ public class STMobileFaceDetection {
         st_mobile_106_t arrayRef = new st_mobile_106_t(ptrToArray.getValue());
         arrayRef.read();
         st_mobile_106_t[] array = st_mobile_106_t.arrayCopy((st_mobile_106_t[]) arrayRef.toArray(ptrToSize.getValue()));
+        Log.e(TAG, "-->> detect array ="+array);
         STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_release_result(ptrToArray.getValue(), ptrToSize.getValue());
         
         STMobile106[] ret = new STMobile106[array.length]; 

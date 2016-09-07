@@ -181,6 +181,10 @@ public interface STMobileApiBridge extends Library {
      */
     STMobileApiBridge FACESDK_INSTANCE = (STMobileApiBridge) Native.loadLibrary("st_mobile", STMobileApiBridge.class);
 
+	int st_mobile_generate_activecode_from_buffer(String license_buf, int license_buf_len, Pointer activation_code, IntByReference activation_code_len);
+
+    int st_mobile_check_activecode_from_buffer(String license_buf, int license_buf_len, String activation_code);
+	
 	/// @brief 根据授权文件生成激活码, 在使用新的license文件时使用
   /// @param[in] product_name 产品名称
   /// @param[in] license_path license文件路径
