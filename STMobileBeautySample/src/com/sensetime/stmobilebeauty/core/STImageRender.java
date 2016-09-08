@@ -165,9 +165,7 @@ public class STImageRender{
 	{
 		int width = bitmap.getWidth();
 		int height = bitmap.getHeight();
-  
-		setEffect(STBeautyParamsType.ST_BEAUTIFY_DEFRECKLE, 1.0f);
-		
+  		
         ByteBuffer srcBuffer = ByteBuffer.allocate(width * height * 4);
         bitmap.copyPixelsToBuffer(srcBuffer);
         
@@ -191,8 +189,6 @@ public class STImageRender{
 		
 		outBitmap.copyPixelsFromBuffer(buffer);
 		
-		setEffect(STBeautyParamsType.ST_BEAUTIFY_DEFRECKLE, 0.0f);
-
     	mGetBitmapListener.onGetBitmapFromGL(bitmap,outBitmap,file);
 	}
 	

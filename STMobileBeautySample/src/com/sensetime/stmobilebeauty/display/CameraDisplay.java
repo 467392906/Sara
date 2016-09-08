@@ -275,7 +275,6 @@ public class CameraDisplay implements Renderer{
 	{
 		mRender.setEffectParam(STBeautyParamsType.ST_BEAUTIFY_CONTRAST_STRENGTH, paramValue);
 		mRender.setEffectParam(STBeautyParamsType.ST_BEAUTIFY_SMOOTH_STRENGTH,paramValue);
-		mRender.setEffectParam(STBeautyParamsType.ST_BEAUTIFY_TONE_STRENGTH,paramValue);
 	}
 	
 	public void setShowOriginal(boolean isShow)
