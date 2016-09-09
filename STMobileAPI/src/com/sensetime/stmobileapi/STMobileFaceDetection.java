@@ -1,13 +1,5 @@
 package com.sensetime.stmobileapi;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStream;
-
 import com.sensetime.stmobileapi.STMobileApiBridge.ResultCode;
 import com.sensetime.stmobileapi.STMobileApiBridge.st_mobile_106_t;
 import com.sun.jna.Memory;
@@ -22,12 +14,10 @@ import android.util.Log;
 
 public class STMobileFaceDetection {
 	private Pointer detectHandle;
-	private Context mContext;
 	private static boolean DEBUG = true;// false;
 	private String TAG = "FaceDetection";
 	private boolean authFromBuffer = true;                  //默认从缓存读取license来认证
-	private static final String DETECTION_MODEL_NAME = "face_track_2.0.0.model";
-	private static final String LICENSE_NAME = "SENSEME_106.lic";
+    public STMobileAuthentification authInstance = null;
 	public static int ST_MOBILE_DETECT_DEFAULT_CONFIG = 0x00000000;  ///< 榛樿閫夐」
 	public static int ST_MOBILE_DETECT_FAST = 0x00000001;  ///< resize鍥惧儚涓洪暱杈�320鐨勫浘鍍忎箣鍚庡啀妫�娴嬶紝缁撴灉澶勭悊涓哄師鍥惧儚瀵瑰簲缁撴灉
 	public static int ST_MOBILE_DETECT_BALANCED = 0x00000002;  ///< resize鍥惧儚涓洪暱杈�640鐨勫浘鍍忎箣鍚庡啀妫�娴嬶紝缁撴灉澶勭悊涓哄師鍥惧儚瀵瑰簲缁撴灉
@@ -36,53 +26,29 @@ public class STMobileFaceDetection {
     PointerByReference ptrToArray = new PointerByReference();
     IntByReference ptrToSize = new IntByReference();
 
-    public STMobileFaceDetection(Context context, int config) {
+    public STMobileFaceDetection(Context context, int config,  AuthCallback authCallback) {
         PointerByReference handlerPointer = new PointerByReference();
-		mContext = context;
-		synchronized(this.getClass())
-		{
-		   copyModelIfNeed(DETECTION_MODEL_NAME);
-            if(!authFromBuffer) {                   //if authentificate by sdCard
-                copyModelIfNeed(LICENSE_NAME);
-            }
-		}
-		String modulePath = getModelPath(DETECTION_MODEL_NAME);
-
+        authInstance = STMobileAuthentification.getInstance(context, authFromBuffer, authCallback);
+		
         int memory_size = 1024;
         IntByReference codeLen = new IntByReference(1);
         codeLen.setValue(memory_size);
-         Pointer generateActiveCode = new Memory(memory_size);
+        Pointer generateActiveCode = new Memory(memory_size);
         generateActiveCode.setMemory(0, memory_size, (byte)0);
 
         if(authFromBuffer) {
-            // 从缓存读取License来认证
-            String licenseStr = "";
-            try {
-                InputStreamReader isr = new InputStreamReader(context.getResources().getAssets().open(LICENSE_NAME));
-                BufferedReader br = new BufferedReader(isr);
-                String line = "";
-                while((line=br.readLine()) != null) {
-                    licenseStr += line;
-                    licenseStr += "\n";
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            if(hasAuthentificatedByBuffer(context, licenseStr, generateActiveCode, codeLen)) {
-                int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(modulePath, config, handlerPointer);
+        	if(authInstance.hasAuthentificatedByBuffer(context, generateActiveCode, codeLen)) {
+                int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(STUtils.getModelPath(STUtils.MODEL_NAME, context), config, handlerPointer);
                 Log.e(TAG, "-->> create handler rst = " + rst);
                 if (rst != ResultCode.ST_OK.getResultCode()) {
                     return;
                 }
                 detectHandle = handlerPointer.getValue();
             }
-        } else {
-            // 从sd卡读取License来认证
-            String licensePath = getModelPath(LICENSE_NAME);
 
-            if (hasAuthentificatd(context, licensePath, generateActiveCode, codeLen)) {
-                int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(modulePath, config, handlerPointer);
+        } else {          
+            if (authInstance.hasAuthentificatd(context, generateActiveCode, codeLen)) {
+                int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(STUtils.getModelPath(STUtils.MODEL_NAME, context), config, handlerPointer);
                 Log.e(TAG, "-->> create handler rst = " + rst);
                 if (rst != ResultCode.ST_OK.getResultCode()) {
                     return;
@@ -91,146 +57,6 @@ public class STMobileFaceDetection {
             }
         }
     }
-    
-	// 从Buffer读取License来授权
-    private boolean hasAuthentificatedByBuffer(Context context, String licenseStr, Pointer generatedActiveCode, IntByReference codeLen) {
-        SharedPreferences sp = context.getSharedPreferences("ActiveCodeFile", 0);
-        boolean isFirst = sp.getBoolean("isFirst", true);
-        int rst = Integer.MIN_VALUE;
-        if(isFirst) {
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode_from_buffer(licenseStr, licenseStr.length(), generatedActiveCode, codeLen);
-            if(rst != ResultCode.ST_OK.getResultCode()) {
-                Log.e(TAG, "-->> generate active code failed!");
-                return false;
-            }
-
-            String activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));//            String activeCode = Native.toString(generatedActiveCode);
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putString("activecode", activeCode);
-            editor.putBoolean("isFirst", false);
-            editor.commit();
-        }
-
-        String activeCode = sp.getString("activecode", "null");
-        if(activeCode==null || activeCode.length()==0) {
-            Log.e(TAG, "-->> activeCode is null in SharedPreference");
-            return false;
-        }
-
-        rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode_from_buffer( licenseStr, licenseStr.length(), activeCode);
-        if(rst != ResultCode.ST_OK.getResultCode()) {
-            // check失败，也有可能是新的license替换，但是还是用的原来lincense生成的activecode。在这里重新生成一次activecode
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode_from_buffer(licenseStr, licenseStr.length(), generatedActiveCode, codeLen);
-
-            if(rst != ResultCode.ST_OK.getResultCode()) {
-                Log.e(TAG, "-->> again generate active code failed! license may invalide");
-                return false;
-            }
-            activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode_from_buffer( licenseStr, licenseStr.length(), activeCode);
-            if(rst != ResultCode.ST_OK.getResultCode()) {
-                Log.e(TAG, "-->> again invalide active code, you need a new license");
-                return false;
-            }
-
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putString("activecode", activeCode);
-            editor.putBoolean("isFirst", false);
-            editor.commit();
-        }
-
-        return true;
-
-    }
-	
-    // 从SD卡读取License来授权
-    private boolean hasAuthentificatd(Context context, String licensePath,Pointer generatedActiveCode, IntByReference codeLen) {
-        SharedPreferences sp = context.getSharedPreferences("ActiveCodeFile", 0);
-        boolean isFirst = sp.getBoolean("isFirst", true);
-        int rst = Integer.MIN_VALUE;
-        if(isFirst) {
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode(licensePath, generatedActiveCode, codeLen);
-            if(rst != ResultCode.ST_OK.getResultCode()) {
-                Log.e(TAG, "-->> generate active code failed!");
-                return false;
-            }
-
-            String activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));//            String activeCode = Native.toString(generatedActiveCode);
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putString("activecode", activeCode);
-            editor.putBoolean("isFirst", false);
-            editor.commit();
-        }
-
-        String activeCode = sp.getString("activecode", "null");
-        if(activeCode==null || activeCode.length()==0) {
-            Log.e(TAG, "-->> activeCode is null in SharedPreference");
-            return false;
-        }
-
-        rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode( licensePath, activeCode);
-        if(rst != ResultCode.ST_OK.getResultCode()) {
-            // check失败，也有可能是新的license替换，但是还是用的原来lincense生成的activecode。在这里重新生成一次activecode
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_generate_activecode(licensePath, generatedActiveCode, codeLen);
-
-            if(rst != ResultCode.ST_OK.getResultCode()) {
-                Log.e(TAG, "-->> again generate active code failed! license may invalide");
-                return false;
-            }
-            activeCode = new String(generatedActiveCode.getByteArray(0, codeLen.getValue()));
-            rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_check_activecode(licensePath, activeCode);
-            if(rst != ResultCode.ST_OK.getResultCode()) {
-                Log.e(TAG, "-->> again invalide active code, you need a new license");
-                return false;
-            }
-
-            SharedPreferences.Editor editor = sp.edit();
-            editor.putString("activecode", activeCode);
-            editor.putBoolean("isFirst", false);
-            editor.commit();
-        }
-
-        return true;
-    }
-    
-	private void copyModelIfNeed(String modelName) {
-		String path = getModelPath(modelName);
-		if (path != null) {
-			File modelFile = new File(path);
-			if (!modelFile.exists()) {
-				//濡傛灉妯″瀷鏂囦欢涓嶅瓨鍦ㄦ垨鑰呭綋鍓嶆ā鍨嬫枃浠剁殑鐗堟湰璺焥dcard涓殑鐗堟湰涓嶄竴鏍�
-				try {
-					if (modelFile.exists())
-						modelFile.delete();
-					modelFile.createNewFile();
-					InputStream in = mContext.getApplicationContext().getAssets().open(modelName);
-					if(in == null)
-					{
-						Log.e(TAG, "the src module is not existed");
-					}
-					OutputStream out = new FileOutputStream(modelFile);
-					byte[] buffer = new byte[4096];
-					int n;
-					while ((n = in.read(buffer)) > 0) {
-						out.write(buffer, 0, n);
-					}
-					in.close();
-					out.close();
-				} catch (IOException e) {
-					modelFile.delete();
-				}
-			}
-		}
-	}
-	
-	protected String getModelPath(String modelName) {
-		String path = null;
-		File dataDir = mContext.getApplicationContext().getExternalFilesDir(null);
-		if (dataDir != null) {
-			path = dataDir.getAbsolutePath() + File.separator + modelName;
-		}
-		return path;
-	}
 	
 	public void destory()
 	{

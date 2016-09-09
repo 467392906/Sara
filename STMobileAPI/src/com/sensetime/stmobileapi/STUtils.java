@@ -1,6 +1,11 @@
 package com.sensetime.stmobileapi;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
 
 import android.annotation.SuppressLint;
 import android.content.Context;
@@ -21,6 +26,7 @@ import android.renderscript.Element;
 import android.renderscript.RenderScript;
 import android.renderscript.ScriptIntrinsicYuvToRGB;
 import android.renderscript.Type;
+import android.util.Log;
 import android.util.TimingLogger;
 
 /**
@@ -70,6 +76,10 @@ public class STUtils {
     static Bitmap bitmap = null;
     
     static final String TIMING_LOG_TAG = "CvUtils timing";
+    
+    static final String MODEL_NAME = "face_track_2.0.1.model";
+    
+    static final String LICENSE_NAME = "SENSEME_106.lic";
     
 	@SuppressLint("NewApi")
 	public static Bitmap NV21ToRGBABitmap(byte []nv21, int width, int height, Context context) {
@@ -264,4 +274,44 @@ public class STUtils {
 		bitmap.recycle();
 		bitmap = null;
 	}
+	
+	public static void copyModelIfNeed(String modelName, Context mContext) {
+		String path = getModelPath(modelName, mContext);
+		if (path != null) {
+			File modelFile = new File(path);
+			if (!modelFile.exists()) {
+				//如果模型文件不存在或者当前模型文件的版本跟sdcard中的版本不一样
+				try {
+					if (modelFile.exists())
+						modelFile.delete();
+					modelFile.createNewFile();
+					InputStream in = mContext.getApplicationContext().getAssets().open(modelName);
+					if(in == null)
+					{
+						Log.e("MultiTrack106", "the src module is not existed");
+					}
+					OutputStream out = new FileOutputStream(modelFile);
+					byte[] buffer = new byte[4096];
+					int n;
+					while ((n = in.read(buffer)) > 0) {
+						out.write(buffer, 0, n);
+					}
+					in.close();
+					out.close();
+				} catch (IOException e) {
+					modelFile.delete();
+				}
+			}
+		}
+	}
+	
+	public static String getModelPath(String modelName, Context mContext) {
+		String path = null;
+		File dataDir = mContext.getApplicationContext().getExternalFilesDir(null);
+		if (dataDir != null) {
+			path = dataDir.getAbsolutePath() + File.separator + modelName;
+		}
+		return path;
+	}
+    
 }

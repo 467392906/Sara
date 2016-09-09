@@ -3,6 +3,7 @@ package com.sample.multitrack106;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.sensetime.stmobileapi.AuthCallback;
 import com.sensetime.stmobileapi.STMobile106;
 import com.sensetime.stmobileapi.STMobileFaceAction;
 import com.sensetime.stmobileapi.STMobileMultiTrack106;
@@ -24,6 +25,7 @@ import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 /**
  * 
@@ -32,7 +34,7 @@ import android.view.ViewGroup;
  *         实时人脸检测接口调用示例
  * 
  */
-public class FaceOverlapFragment extends CameraOverlapFragment {
+public class FaceOverlapFragment extends CameraOverlapFragment{
     ///< 检测脸部动作：张嘴、眨眼、抬眉、点头、摇头
     private static final int ST_MOBILE_TRACKING_MULTI_THREAD = 0x00000000;
     private static final int ST_MOBILE_TRACKING_RESIZE_IMG_320W = 0x00000001;
@@ -99,8 +101,16 @@ public class FaceOverlapFragment extends CameraOverlapFragment {
 
 		if (tracker == null) {
 			long start_init = System.currentTimeMillis();
+			AuthCallback authCallback = new AuthCallback() {
+				@Override
+				public void authErr(String err) {
+					Toast.makeText(getActivity(), err, Toast.LENGTH_SHORT).show();
+				}			
+			};
             int config = ST_MOBILE_TRACKING_DEFAULT_CONFIG | ST_MOBILE_TRACKING_ENABLE_DEBOUNCE | ST_MOBILE_TRACKING_ENABLE_FACE_ACTION;
-			tracker = new STMobileMultiTrack106(getActivity(), config);
+			if(authCallback != null) {
+				tracker = new STMobileMultiTrack106(getActivity(), config, authCallback);
+			}
 			int max = 40;
 			tracker.setMaxDetectableFaces(max);
 			long end_init = System.currentTimeMillis();

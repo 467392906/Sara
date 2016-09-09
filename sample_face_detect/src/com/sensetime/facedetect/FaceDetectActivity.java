@@ -3,6 +3,7 @@ package com.sensetime.facedetect;
 import javax.microedition.khronos.opengles.GL10;
 
 import com.sensetim.facedetect.R;
+import com.sensetime.stmobileapi.AuthCallback;
 import com.sensetime.stmobileapi.STMobile106;
 import com.sensetime.stmobileapi.STMobileFaceDetection;
 import com.sensetime.stmobileapi.STUtils;
@@ -34,6 +35,7 @@ import android.view.Window;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.ImageView;
+import android.widget.Toast;
 
 public class FaceDetectActivity extends Activity implements OnClickListener {
 
@@ -100,10 +102,18 @@ public class FaceDetectActivity extends Activity implements OnClickListener {
     private void initFaceDetect()
     {	
 		if (mDetect == null) {
+			AuthCallback authCallback = new AuthCallback() {
+				@Override
+				public void authErr(String err) {
+					Toast.makeText(getApplicationContext(), err, Toast.LENGTH_SHORT).show();
+				}			
+			};
 			mSrcFace = mSrcbmp.copy(Config.ARGB_8888, true);
 			long start_init = System.currentTimeMillis();
 			int config = STMobileFaceDetection.ST_MOBILE_DETECT_FAST; //fast
-			mDetect = new STMobileFaceDetection(this, config);
+			if(authCallback != null) {
+				mDetect = new STMobileFaceDetection(this, config, authCallback);
+			}
 			long end_init = System.currentTimeMillis();
 			Log.i(TAG, "init cost "+(end_init - start_init) +" ms");
 		}	
