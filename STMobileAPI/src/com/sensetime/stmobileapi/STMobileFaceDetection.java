@@ -17,7 +17,7 @@ public class STMobileFaceDetection {
 	private static boolean DEBUG = true;// false;
 	private String TAG = "FaceDetection";
 	private boolean authFromBuffer = true;                  //默认从缓存读取license来认证
-    public STMobileAuthentification authInstance = null;
+    public STMobileAuthentification stMobileAuth = null;
 	public static int ST_MOBILE_DETECT_DEFAULT_CONFIG = 0x00000000;  ///< 榛樿閫夐」
 	public static int ST_MOBILE_DETECT_FAST = 0x00000001;  ///< resize鍥惧儚涓洪暱杈�320鐨勫浘鍍忎箣鍚庡啀妫�娴嬶紝缁撴灉澶勭悊涓哄師鍥惧儚瀵瑰簲缁撴灉
 	public static int ST_MOBILE_DETECT_BALANCED = 0x00000002;  ///< resize鍥惧儚涓洪暱杈�640鐨勫浘鍍忎箣鍚庡啀妫�娴嬶紝缁撴灉澶勭悊涓哄師鍥惧儚瀵瑰簲缁撴灉
@@ -28,7 +28,7 @@ public class STMobileFaceDetection {
 
     public STMobileFaceDetection(Context context, int config,  AuthCallback authCallback) {
         PointerByReference handlerPointer = new PointerByReference();
-        authInstance = STMobileAuthentification.getInstance(context, authFromBuffer, authCallback);
+        stMobileAuth = new STMobileAuthentification(context, authFromBuffer, authCallback);
 		
         int memory_size = 1024;
         IntByReference codeLen = new IntByReference(1);
@@ -37,7 +37,7 @@ public class STMobileFaceDetection {
         generateActiveCode.setMemory(0, memory_size, (byte)0);
 
         if(authFromBuffer) {
-        	if(authInstance.hasAuthentificatedByBuffer(context, generateActiveCode, codeLen)) {
+        	if(stMobileAuth.hasAuthentificatedByBuffer(context, generateActiveCode, codeLen)) {
                 int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(STUtils.getModelPath(STUtils.MODEL_NAME, context), config, handlerPointer);
                 Log.e(TAG, "-->> create handler rst = " + rst);
                 if (rst != ResultCode.ST_OK.getResultCode()) {
@@ -47,7 +47,7 @@ public class STMobileFaceDetection {
             }
 
         } else {          
-            if (authInstance.hasAuthentificatd(context, generateActiveCode, codeLen)) {
+            if (stMobileAuth.hasAuthentificatd(context, generateActiveCode, codeLen)) {
                 int rst = STMobileApiBridge.FACESDK_INSTANCE.st_mobile_face_detection_create(STUtils.getModelPath(STUtils.MODEL_NAME, context), config, handlerPointer);
                 Log.e(TAG, "-->> create handler rst = " + rst);
                 if (rst != ResultCode.ST_OK.getResultCode()) {

@@ -22,11 +22,10 @@ public class STMobileAuthentification {
     
 	private Context mContext;
     
-    private static STMobileAuthentification instance = null;
     private AuthCallback authCallback = null;
     private String licenseStr = "";
     
-    private STMobileAuthentification(Context context, boolean authFromBuffer, AuthCallback callback) {
+    public STMobileAuthentification(Context context, boolean authFromBuffer, AuthCallback callback) {
     	mContext = context;
     	this.authCallback = callback;
     	
@@ -49,14 +48,6 @@ public class STMobileAuthentification {
                 }          	
             }
 		}
-    }
-
-	public static STMobileAuthentification getInstance(Context context, boolean authFromBuffer, AuthCallback authCallback) {
-    	if(instance == null) {
-    		instance = new STMobileAuthentification(context, authFromBuffer, authCallback);
-    	} 
-    	
-    	return instance;
     }
 	
     // ÊÚÈ¨

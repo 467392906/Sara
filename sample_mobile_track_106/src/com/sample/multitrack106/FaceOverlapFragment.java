@@ -10,7 +10,6 @@ import com.sensetime.stmobileapi.STMobileMultiTrack106;
 import com.sensetime.stmobileapi.STUtils;
 
 import android.annotation.SuppressLint;
-import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -50,7 +49,6 @@ public class FaceOverlapFragment extends CameraOverlapFragment{
     private static final int ST_MOBILE_BROW_JUMP     =  0x00000020;    ///<  眉毛挑动
 
 	// private FaceTrackerBase tracker = null;
-	private Context mContext;
 	private STMobileMultiTrack106 tracker = null;
 	TrackCallBack mListener;
 	private Thread thread;
@@ -106,13 +104,12 @@ public class FaceOverlapFragment extends CameraOverlapFragment{
 			AuthCallback authCallback = new AuthCallback() {
 				@Override
 				public void authErr(String err) {
-					Toast.makeText(mContext, err, Toast.LENGTH_SHORT).show();
+					Toast.makeText(getActivity(), err, Toast.LENGTH_SHORT).show();
 				}			
 			};
             int config = ST_MOBILE_TRACKING_DEFAULT_CONFIG | ST_MOBILE_TRACKING_ENABLE_DEBOUNCE | ST_MOBILE_TRACKING_ENABLE_FACE_ACTION;
 			if(authCallback != null) {
-				mContext = getActivity();
-				tracker = new STMobileMultiTrack106(mContext, config, authCallback);
+				tracker = new STMobileMultiTrack106(getActivity(), config, authCallback);
 			}
 			int max = 40;
 			tracker.setMaxDetectableFaces(max);

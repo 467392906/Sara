@@ -39,7 +39,6 @@ import android.widget.Toast;
 
 public class FaceDetectActivity extends Activity implements OnClickListener {
 
-
     private static final int REQUEST_PICK_IMAGE = 1;
     public static final String JPEG_MIME_TYPE = "image/jpeg";
     public String TAG = "FaceDetect";
@@ -112,7 +111,7 @@ public class FaceDetectActivity extends Activity implements OnClickListener {
 			long start_init = System.currentTimeMillis();
 			int config = STMobileFaceDetection.ST_MOBILE_DETECT_FAST; //fast
 			if(authCallback != null) {
-				mDetect = new STMobileFaceDetection(this, config, authCallback);
+				mDetect = new STMobileFaceDetection(getApplicationContext(), config, authCallback);
 			}
 			long end_init = System.currentTimeMillis();
 			Log.i(TAG, "init cost "+(end_init - start_init) +" ms");

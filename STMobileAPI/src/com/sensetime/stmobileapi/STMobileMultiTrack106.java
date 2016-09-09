@@ -40,7 +40,7 @@ public class STMobileMultiTrack106 {
      
     public STMobileMultiTrack106(Context context, int config, AuthCallback authCallback) {
         PointerByReference handlerPointer = new PointerByReference();
-        authInstance = STMobileAuthentification.getInstance(context, authFromBuffer, authCallback);
+        authInstance = new STMobileAuthentification(context, authFromBuffer, authCallback);
 
         int memory_size = 1024;
         IntByReference codeLen = new IntByReference(1);
