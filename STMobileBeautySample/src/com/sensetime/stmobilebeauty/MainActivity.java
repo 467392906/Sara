@@ -22,7 +22,7 @@ import android.widget.Toast;
 
 public class MainActivity extends Activity implements OnClickListener {
 	private final static String TAG = "MainActivity";
-    private static final String LICENSE_NAME = "SENSEME_BEAUTIFY_8E1A1FA7-57DF-40CE-8FA0-AA0BF31EBF8C.lic";
+    private static final String LICENSE_NAME = "SENSEME_E8BD0360-ED44-43FE-AA59-50EB14005B58.lic";
 
 	private final static String PREF_ACTIVATE_CODE_FILE = "pref_activate_code_file";
 	private final static String PREF_ACTIVATE_CODE = "pref_activate_code";
