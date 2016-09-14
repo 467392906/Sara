@@ -245,7 +245,6 @@ public class StreamingBaseActivity extends Activity implements
 
         mFrontCameraOrientation = getIntent().getIntExtra("frontcamera_orientation",3);
         mBackCameraOrientation = getIntent().getIntExtra("backcamera_orientation",3);
-
         mContext = this;
 
         StreamingProfile.AudioProfile aProfile = new StreamingProfile.AudioProfile(44100, 96 * 1024);
@@ -448,7 +447,6 @@ public class StreamingBaseActivity extends Activity implements
 //            bytes[i] = 0x00;
 //        }
 //        Log.i(TAG, "old onPreviewFrame cost :" + (System.currentTimeMillis() - start));
-
         Log.i(TAG,"the height11 is "+height+" , the width is "+width);
         mStImageFilterNative.processBufferWithNewContext(bytes, STImageFormat.ST_PIX_FMT_NV21,width,height,bytes,STImageFormat.ST_PIX_FMT_NV21);
         return true;
@@ -457,6 +455,20 @@ public class StreamingBaseActivity extends Activity implements
     @Override
     public void onSurfaceCreated() {
         Log.i(TAG, "onSurfaceCreated");
+        if (mIsSwitching) {
+            mCameraBuffer = null;
+            mCameraInputRender.destroyFramebuffers();
+            if (mMidTextureId != null) {
+                GLES20.glDeleteTextures(1, mMidTextureId, 0);
+                mMidTextureId = null;
+            }
+
+            if (mTextureOutId != null) {
+                GLES20.glDeleteTextures(1, mTextureOutId, 0);
+                mTextureOutId = null;
+            }
+        }
+
         mFBO.initialize(this);
         initSticker();
         mCameraInputRender.init();
@@ -477,7 +489,9 @@ public class StreamingBaseActivity extends Activity implements
         mSurfaceWidth = width;
         mSurfaceHeight = height;
 
-        mCameraInputRender.initCameraFrameBuffer(mPreviewSizeWidth, mPreviewSizeHeight);
+        synchronized (StreamingBaseActivity.this) {
+            mCameraInputRender.initCameraFrameBuffer(mPreviewSizeWidth, mPreviewSizeHeight);
+        }
     }
 
     @Override
@@ -497,6 +511,7 @@ public class StreamingBaseActivity extends Activity implements
             GLES20.glDeleteTextures(1, mTextureOutId, 0);
             mTextureOutId = null;
         }
+
     }
 
     @Override
@@ -509,66 +524,68 @@ public class StreamingBaseActivity extends Activity implements
         return newTexId;
         */
         long startTime = System.currentTimeMillis();
-        if(mCameraBuffer == null)
-        {
-            mCameraBuffer = ByteBuffer.allocate(texWidth*texHeight*4);
+        if (mIsSwitching) {
+            return -1;
         }
-        if(mTextureOutId == null)
-        {
+
+        if (mCameraBuffer == null) {
+            mCameraBuffer = ByteBuffer.allocate(texWidth * texHeight * 4);
+        }
+        if (mTextureOutId == null) {
             mTextureOutId = new int[1];
-            GlUtil.initEffectTexture(texWidth,texHeight,mTextureOutId);
+            GlUtil.initEffectTexture(texWidth, texHeight, mTextureOutId);
         }
 
-        if(mMidTextureId == null)
-        {
+        if (mMidTextureId == null) {
             mMidTextureId = new int[1];
-            GlUtil.initEffectTexture(texWidth,texHeight,mMidTextureId);
+            GlUtil.initEffectTexture(texWidth, texHeight, mMidTextureId);
         }
 
-        if(mCameraBuffer != null) {
+        if (mCameraBuffer != null) {
             mCameraBuffer.rewind();
         }
         float[] identityMatrix = new float[16];
         Matrix.setIdentityM(identityMatrix, 0);
         mCameraInputRender.setTextureTransformMatrix(identityMatrix);
-        int textureID = mCameraInputRender.onDrawToTexture(texId,mCameraBuffer);
+        int textureID = mCameraInputRender.onDrawToTexture(texId, mCameraBuffer);
         long afterSrcRenderTime = System.currentTimeMillis();
-        Log.i(TAG,"onDrawFrame, the time for camera source data render is "+ (afterSrcRenderTime-startTime));
+        Log.i(TAG, "onDrawFrame, the time for camera source data render is " + (afterSrcRenderTime - startTime));
 
         int result = -1;
         result = mStImageFilterNative.processTexture(textureID, texWidth, texHeight, mMidTextureId[0]);
 
         long afterBeautyTime = System.currentTimeMillis();
-        Log.i(TAG,"onDrawFrame, the time for Beauty is "+ (afterBeautyTime -afterSrcRenderTime));
+        Log.i(TAG, "onDrawFrame, the time for Beauty is " + (afterBeautyTime - afterSrcRenderTime));
 
         int dir = Accelerometer.getDirection();
 
         boolean needMirror = false;
-
-        if(mCameraStreamingSetting.getReqCameraId()==Camera.CameraInfo.CAMERA_FACING_FRONT){
+        if (mCameraStreamingSetting.getReqCameraId() == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             //  if((dir & 1) == 1) {
-            if(((mFrontCameraOrientation == 270 && (dir & 1) == 1) ||
-                    (mFrontCameraOrientation == 90 && (dir & 1) == 0))){
+            if (((mFrontCameraOrientation == 270 && (dir & 1) == 1) ||
+                    (mFrontCameraOrientation == 90 && (dir & 1) == 0))) {
                 dir = (dir ^ 2);
             }
+
             needMirror = true;
-            result = mStStickerNative.processTexture(mMidTextureId[0],mCameraBuffer.array(),dir,texWidth,texHeight,needMirror,mTextureOutId[0]);
-        }
-        else {
-            if(mBackCameraOrientation == 270){
+            result = mStStickerNative.processTexture(mMidTextureId[0], mCameraBuffer.array(), dir, texWidth, texHeight, needMirror, mTextureOutId[0]);
+        } else {
+
+            if (mBackCameraOrientation == 270) {
                 dir = (dir ^ 2);
             }
-            result = mStStickerNative.processTexture(mMidTextureId[0],mCameraBuffer.array(),dir,texWidth,texHeight,needMirror,mTextureOutId[0]);
+            result = mStStickerNative.processTexture(mMidTextureId[0], mCameraBuffer.array(), dir, texWidth, texHeight, needMirror, mTextureOutId[0]);
         }
 
         long afterStickerTime = System.currentTimeMillis();
-        Log.i(TAG,"onDrawFrame, the time for whole operation is "+ (afterStickerTime - startTime));
+        Log.i(TAG, "onDrawFrame, the time for whole operation is " + (afterStickerTime - startTime));
 
-        Log.i(TAG,"the result is "+result+" the width is "+texWidth+",the height is "+texHeight);
+        Log.i(TAG, "the result is " + result + " the width is " + texWidth + ",the height is " + texHeight);
         GLES20.glViewport(0, 0, mSurfaceWidth, mSurfaceHeight);
-        //     return mMidTextureId[0];
-        return mTextureOutId[0];
 
+        if(mTextureOutId != null)
+            return mTextureOutId[0];
+        return -1;
 /*
        return textureID;
        */
@@ -686,20 +703,14 @@ public class StreamingBaseActivity extends Activity implements
         });
     }
 
+    private boolean mIsSwitching = false;
     private class Switcher implements Runnable {
         @Override
         public void run() {
             mCameraStreamingManager.switchCamera();
-            mCameraInputRender.destroyFramebuffers();
-            mCameraBuffer = null;
-            if(mMidTextureId != null){
-                GLES20.glDeleteTextures(1, mMidTextureId, 0);
-                mMidTextureId = null;
-            }
-
-            if(mTextureOutId != null){
-                GLES20.glDeleteTextures(1, mTextureOutId, 0);
-                mTextureOutId = null;
+            synchronized (StreamingBaseActivity.class) {
+                mIsSwitching = true;
+                Log.e(TAG, "Start switcher...........................");
             }
         }
     }
@@ -823,6 +834,9 @@ public class StreamingBaseActivity extends Activity implements
                 }
                 Log.i(TAG, "camera switched");
                 final int currentCamId = (Integer)extra;
+                synchronized (StreamingBaseActivity.class) {
+                    mIsSwitching = false;
+                }
                 this.runOnUiThread(new Runnable() {
                     @Override
                     public void run() {
