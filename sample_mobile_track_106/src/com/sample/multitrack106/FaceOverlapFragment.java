@@ -148,8 +148,7 @@ public class FaceOverlapFragment extends CameraOverlapFragment{
 					 * 请注意前置摄像头与后置摄像头旋转定义不同
 					 * 请注意不同手机摄像头旋转定义不同
 					 */
-					if (frontCamera && 
-							((mCameraInfo.orientation == 270 && (dir & 1) == 1) ||
+					if (((mCameraInfo.orientation == 270 && (dir & 1) == 1) ||
 							 (mCameraInfo.orientation == 90 && (dir & 1) == 0)))
 						dir = (dir ^ 2);
 
