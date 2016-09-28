@@ -8,9 +8,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <math.h>
-#include "prebuilt/include/st_common.h"
+#include "prebuilt/include/st_mobile_common.h"
 #include "prebuilt/include/st_mobile_beautify.h"
-#include "prebuilt/include/st_mobile_human_action.h"
 #include "prebuilt/include/st_mobile_sticker.h"
 
 #include "jni_common.h"

@@ -35,15 +35,18 @@ import com.pili.pldroid.streaming.camera.demo.gles.CameraInputRender;
 import com.pili.pldroid.streaming.camera.demo.gles.FBO;
 import com.pili.pldroid.streaming.camera.demo.gles.GlUtil;
 import com.pili.pldroid.streaming.camera.demo.ui.RotateLayout;
+import com.pili.pldroid.streaming.camera.demo.util.TextureRotationUtil;
 import com.qiniu.android.dns.DnsManager;
 import com.qiniu.android.dns.IResolver;
 import com.qiniu.android.dns.NetworkInfo;
 import com.qiniu.android.dns.http.DnspodFree;
 import com.qiniu.android.dns.local.AndroidDnsServer;
 import com.qiniu.android.dns.local.Resolver;
+import com.sensetime.stmobile.AuthCallback;
 import com.sensetime.stmobile.STBeautyParamsType;
 import com.sensetime.stmobile.STImageFilterNative;
 import com.sensetime.stmobile.STImageFormat;
+import com.sensetime.stmobile.STMobileAuthentification;
 import com.sensetime.stmobile.STMobileStickerNative;
 
 import org.json.JSONObject;
@@ -56,7 +59,10 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.InetAddress;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.nio.FloatBuffer;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -121,7 +127,7 @@ public class StreamingBaseActivity extends Activity implements
     private int mCurrentZoom = 0;
     private int mMaxZoom = 0;
 
-    private FBO mFBO = new FBO();
+//    private FBO mFBO = new FBO();
 
     private STImageFilterNative mStImageFilterNative;
     private STMobileStickerNative mStStickerNative;
@@ -131,6 +137,7 @@ public class StreamingBaseActivity extends Activity implements
 
     private int[] mTextureOutId;
     private int[] mMidTextureId;
+    private int[] mRetTextureId;
     private  CameraInputRender mCameraInputRender;
     private int mSurfaceWidth;
     private int mSurfaceHeight;
@@ -142,10 +149,14 @@ public class StreamingBaseActivity extends Activity implements
     private Accelerometer mAccelerometer;
 
     private List<String> mStickerFilesList;
+    private List<String> zipfiles;
+
     private int mCurrentStickerNum = 0 ;
 
     private int mFrontCameraOrientation;
     private int mBackCameraOrientation;
+    private boolean mIsFrontFlipHorizontal;
+    private boolean mIsBackFlipHorizontal;
 
     private String mStickerFolderPath = null;
 
@@ -155,6 +166,10 @@ public class StreamingBaseActivity extends Activity implements
     private int processors = Runtime.getRuntime().availableProcessors();
     ExecutorService executor = Executors.newFixedThreadPool(processors);
     private int initStickerResult = 0;
+
+//    protected FloatBuffer mVertexBuffer;
+    protected FloatBuffer mTextureBuffer;
+    protected FloatBuffer mTextureBuffer2;
 
     protected Handler mHandler = new Handler(Looper.getMainLooper()) {
         @Override
@@ -245,6 +260,8 @@ public class StreamingBaseActivity extends Activity implements
 
         mFrontCameraOrientation = getIntent().getIntExtra("frontcamera_orientation",3);
         mBackCameraOrientation = getIntent().getIntExtra("backcamera_orientation",3);
+        mIsFrontFlipHorizontal = getIntent().getBooleanExtra("frontcamera-fliphorizontal", false);
+        mIsBackFlipHorizontal = getIntent().getBooleanExtra("backcamera-fliphorizontal", false);
         mContext = this;
 
         StreamingProfile.AudioProfile aProfile = new StreamingProfile.AudioProfile(44100, 96 * 1024);
@@ -267,7 +284,7 @@ public class StreamingBaseActivity extends Activity implements
                 .setSendingBufferProfile(new StreamingProfile.SendingBufferProfile(0.2f, 0.8f, 3.0f, 20 * 1000));
 
         mCameraStreamingSetting = new CameraStreamingSetting();
-        mCameraStreamingSetting.setCameraId(Camera.CameraInfo.CAMERA_FACING_FRONT)
+        mCameraStreamingSetting.setCameraId(mCameraId)
                 .setContinuousFocusModeEnabled(true)
                 .setRecordingHint(false)
                 .setResetTouchFocusDelayInMs(3000)
@@ -296,6 +313,21 @@ public class StreamingBaseActivity extends Activity implements
         mCameraInputRender = new CameraInputRender();
 
         initAccelerometer();
+
+//        mVertexBuffer = ByteBuffer.allocateDirect(TextureRotationUtil.CUBE.length * 4)
+//                .order(ByteOrder.nativeOrder())
+//                .asFloatBuffer();
+//        mVertexBuffer.put(TextureRotationUtil.CUBE).position(0);
+
+        mTextureBuffer = ByteBuffer.allocateDirect(TextureRotationUtil.TEXTURE_NO_ROTATION.length * 4)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
+        mTextureBuffer.put(TextureRotationUtil.TEXTURE_NO_ROTATION).position(0);
+
+        mTextureBuffer2 = ByteBuffer.allocateDirect(TextureRotationUtil.TEXTURE_NO_ROTATION.length * 4)
+                .order(ByteOrder.nativeOrder())
+                .asFloatBuffer();
+        mTextureBuffer2.put(TextureRotationUtil.TEXTURE_NO_ROTATION).position(0);
     }
 
 
@@ -309,9 +341,6 @@ public class StreamingBaseActivity extends Activity implements
             Toast.makeText(StreamingBaseActivity.this, "Device open error!", Toast.LENGTH_SHORT).show();
         }
         startAccelerometer();
-        copyModelIfNeed("face_action.model");
-        copyModelIfNeed("MOBILESDK_FD681B7F-82D2-4917-B9B7-E0DB5D8D33ED.lic");
-        //    copyModelIfNeed("rabbit.zip");
     }
 
     @Override
@@ -385,8 +414,10 @@ public class StreamingBaseActivity extends Activity implements
                 size = s;
                 Log.i(TAG, "w:" + s.width + ", h:" + s.height);
                 //               break;
-                if (s.height == 720) {
-                    size = s;
+                if (s.height == 480 && s.width == 640) {
+                    break;
+                }
+                else if (s.height == 720) {
                     break;
                 } else {
                     continue;
@@ -394,8 +425,14 @@ public class StreamingBaseActivity extends Activity implements
             }
         }
         Log.e(TAG, "selected size :" + size.width + "x" + size.height);
-        mPreviewSizeWidth = size.width;
-        mPreviewSizeHeight = size.height;
+        mPreviewSizeWidth = size.height;
+        mPreviewSizeHeight = size.width;
+        runOnUiThread(new Runnable() {
+            @Override
+            public void run() {
+                Toast.makeText(getApplicationContext(), "current preview size: " + mPreviewSizeHeight + "x" + mPreviewSizeWidth, Toast.LENGTH_LONG).show();
+            }
+        });
         return size;
     }
 
@@ -456,29 +493,51 @@ public class StreamingBaseActivity extends Activity implements
     public void onSurfaceCreated() {
         Log.i(TAG, "onSurfaceCreated");
         if (mIsSwitching) {
-            mCameraBuffer = null;
-            mCameraInputRender.destroyFramebuffers();
-            if (mMidTextureId != null) {
-                GLES20.glDeleteTextures(1, mMidTextureId, 0);
-                mMidTextureId = null;
-            }
-
-            if (mTextureOutId != null) {
-                GLES20.glDeleteTextures(1, mTextureOutId, 0);
-                mTextureOutId = null;
-            }
+            destroyTextures();
         }
 
-        mFBO.initialize(this);
+        int orientation = mFrontCameraOrientation;
+        boolean flipHorizontal = mIsFrontFlipHorizontal;
+        boolean flipVertical = mIsFrontFlipHorizontal;
+        boolean needFlipHorizontal = false;
+        if (mCameraId == Camera.CameraInfo.CAMERA_FACING_BACK) {
+            orientation = mBackCameraOrientation;
+            flipHorizontal = !mIsBackFlipHorizontal;
+            flipVertical = mIsBackFlipHorizontal;
+            needFlipHorizontal = true;
+        }
+
+        adjustPosition(orientation,flipHorizontal,flipVertical);
+        adjustPosition2(360 - orientation, needFlipHorizontal);
+//        mFBO.initialize(this);
         initSticker();
         mCameraInputRender.init();
     }
 
+    private void destroyTextures() {
+        mCameraBuffer = null;
+        mCameraInputRender.destroyFramebuffers();
+        if (mMidTextureId != null) {
+            GLES20.glDeleteTextures(1, mMidTextureId, 0);
+            mMidTextureId = null;
+        }
+
+        if (mTextureOutId != null) {
+            GLES20.glDeleteTextures(1, mTextureOutId, 0);
+            mTextureOutId = null;
+        }
+
+        if (mRetTextureId != null) {
+            GLES20.glDeleteTextures(1, mRetTextureId, 0);
+            mRetTextureId = null;
+        }
+    }
+
     @Override
     public void onSurfaceChanged(int width, int height) {
-        Log.i(TAG, "onSurfaceChanged width:" + width + ",height:" + height);
-        mFBO.updateSurfaceSize(width, height);
-        int result = mStImageFilterNative.initBeautify(mPreviewSizeWidth,mPreviewSizeHeight);
+        Log.i(TAG, "onSurfaceChanged width:" + width + ",height:" + height + " mPreviewWidth: " + mPreviewSizeWidth + " mPreviewHeight: " + mPreviewSizeHeight);
+//        mFBO.updateSurfaceSize(width, height);
+        int result = mStImageFilterNative.initBeautify(mPreviewSizeWidth, mPreviewSizeHeight);
         Log.i(TAG,"the result is for initBeautify "+result);
         mStImageFilterNative.setParam(STBeautyParamsType.ST_BEAUTIFY_CONTRAST_STRENGTH, 7/7);
         mStImageFilterNative.setParam(STBeautyParamsType.ST_BEAUTIFY_SMOOTH_STRENGTH, 7/7);
@@ -497,20 +556,12 @@ public class StreamingBaseActivity extends Activity implements
     @Override
     public void onSurfaceDestroyed() {
         Log.i(TAG, "onSurfaceDestroyed");
-        mFBO.release();
+//        mFBO.release();
 
         mCameraInputRender.destroyFramebuffers();
 
         mStStickerNative.destoryInstance();
-        if(mMidTextureId != null){
-            GLES20.glDeleteTextures(1, mMidTextureId, 0);
-            mMidTextureId = null;
-        }
-
-        if(mTextureOutId != null){
-            GLES20.glDeleteTextures(1, mTextureOutId, 0);
-            mTextureOutId = null;
-        }
+        destroyTextures();
 
     }
 
@@ -523,72 +574,103 @@ public class StreamingBaseActivity extends Activity implements
         Log.i(TAG, "onDrawFrame texId:" + texId + ",newTexId:" + newTexId + ",texWidth:" + texWidth + ",texHeight:" + texHeight);
         return newTexId;
         */
+
         long startTime = System.currentTimeMillis();
+        Log.e(TAG, "============mIsSwitching: " + mIsSwitching);
         if (mIsSwitching) {
             return -1;
         }
+
+        // change the width and height
+        int temp = texWidth;
+        texWidth = texHeight;
+        texHeight = temp;
 
         if (mCameraBuffer == null) {
             mCameraBuffer = ByteBuffer.allocate(texWidth * texHeight * 4);
         }
         if (mTextureOutId == null) {
             mTextureOutId = new int[1];
-            GlUtil.initEffectTexture(texWidth, texHeight, mTextureOutId);
+            GlUtil.initEffectTexture(texWidth, texHeight, mTextureOutId, GLES20.GL_TEXTURE_2D);
         }
 
         if (mMidTextureId == null) {
             mMidTextureId = new int[1];
-            GlUtil.initEffectTexture(texWidth, texHeight, mMidTextureId);
+            GlUtil.initEffectTexture(texWidth, texHeight, mMidTextureId, GLES20.GL_TEXTURE_2D);
         }
+
+        if (mRetTextureId == null) {
+            mRetTextureId = new int[1];
+            GlUtil.initEffectTexture(texHeight, texWidth, mRetTextureId, GLES20.GL_TEXTURE_2D);
+        }
+
 
         if (mCameraBuffer != null) {
             mCameraBuffer.rewind();
         }
+
         float[] identityMatrix = new float[16];
         Matrix.setIdentityM(identityMatrix, 0);
         mCameraInputRender.setTextureTransformMatrix(identityMatrix);
-        int textureID = mCameraInputRender.onDrawToTexture(texId, mCameraBuffer);
+        int textureID = mCameraInputRender.onDrawToTexture(texId, null, mTextureBuffer, mCameraBuffer);
         long afterSrcRenderTime = System.currentTimeMillis();
         Log.i(TAG, "onDrawFrame, the time for camera source data render is " + (afterSrcRenderTime - startTime));
 
+        if (mIsSaving) {
+            Bitmap bmp = Bitmap.createBitmap(texWidth, texHeight, Bitmap.Config.ARGB_8888);
+            bmp.copyPixelsFromBuffer(mCameraBuffer);
+            try {
+                saveToSDCard("22.jpg", bmp);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            mIsSaving = false;
+        }
+
         int result = -1;
         result = mStImageFilterNative.processTexture(textureID, texWidth, texHeight, mMidTextureId[0]);
-
         long afterBeautyTime = System.currentTimeMillis();
+
         Log.i(TAG, "onDrawFrame, the time for Beauty is " + (afterBeautyTime - afterSrcRenderTime));
 
         int dir = Accelerometer.getDirection();
-
-        boolean needMirror = false;
-        if (mCameraStreamingSetting.getReqCameraId() == Camera.CameraInfo.CAMERA_FACING_FRONT) {
-            //  if((dir & 1) == 1) {
-            if (((mFrontCameraOrientation == 270 && (dir & 1) == 1) ||
-                    (mFrontCameraOrientation == 90 && (dir & 1) == 0))) {
-                dir = (dir ^ 2);
-            }
-
-            needMirror = true;
-            result = mStStickerNative.processTexture(mMidTextureId[0], mCameraBuffer.array(), dir, texWidth, texHeight, needMirror, mTextureOutId[0]);
-        } else {
-
-            if (mBackCameraOrientation == 270) {
-                dir = (dir ^ 2);
-            }
-            result = mStStickerNative.processTexture(mMidTextureId[0], mCameraBuffer.array(), dir, texWidth, texHeight, needMirror, mTextureOutId[0]);
+        int orientation = dir -1;
+        if(orientation < 0){
+            orientation = dir ^ 3;
         }
+
+        result = mStStickerNative.processTexture(mMidTextureId[0], mCameraBuffer.array(), orientation, texWidth, texHeight, false, mTextureOutId[0]);
 
         long afterStickerTime = System.currentTimeMillis();
         Log.i(TAG, "onDrawFrame, the time for whole operation is " + (afterStickerTime - startTime));
-
-        Log.i(TAG, "the result is " + result + " the width is " + texWidth + ",the height is " + texHeight);
+//
+        Log.i(TAG, "the result is " + result + " 11 the width is " + texWidth + ",the height is " + texHeight);
+        int retID = -1;
+        if(mTextureOutId != null) {
+            retID = mCameraInputRender.onDrawToTexture2(mRetTextureId[0], mTextureOutId[0], null, mTextureBuffer2, null);
+//            retID = mTextureOutId[0];
+        }
         GLES20.glViewport(0, 0, mSurfaceWidth, mSurfaceHeight);
-
-        if(mTextureOutId != null)
-            return mTextureOutId[0];
-        return -1;
+        Log.e(TAG, "retID: " + retID);
+        return retID;
 /*
        return textureID;
        */
+    }
+
+    private void adjustPosition(int orientation, boolean flipHorizontal,boolean flipVertical) {
+        float[] textureCords = TextureRotationUtil.getRotation(orientation, flipHorizontal, flipVertical);
+        Log.e(TAG, "==========rotation: " + orientation + " flipHorizontal: " + flipHorizontal + " flipVertical: " + flipVertical
+                + " texturePos: " + Arrays.toString(textureCords));
+        mTextureBuffer.clear();
+        mTextureBuffer.put(textureCords).position(0);
+    }
+
+    private void adjustPosition2(int orientation, boolean flipHorizontal) {
+        float[] textureCords2 = TextureRotationUtil.getRotation(orientation, flipHorizontal, false);
+        mTextureBuffer2.clear();
+        mTextureBuffer2.put(textureCords2).position(0);
+        Log.e(TAG, "==========rotation: " + Arrays.toString(textureCords2));
     }
 
     @Override
@@ -703,13 +785,17 @@ public class StreamingBaseActivity extends Activity implements
         });
     }
 
+    private boolean mIsSaving = false;
     private boolean mIsSwitching = false;
     private class Switcher implements Runnable {
         @Override
         public void run() {
+            Log.e(TAG, "enter switcher...........................");
             mCameraStreamingManager.switchCamera();
             synchronized (StreamingBaseActivity.class) {
                 mIsSwitching = true;
+                mCameraId = 1 - mCameraId;
+//                mIsSaving = true;
                 Log.e(TAG, "Start switcher...........................");
             }
         }
@@ -791,6 +877,7 @@ public class StreamingBaseActivity extends Activity implements
                 mStatusMsgContent = getString(R.string.string_state_connecting);
                 break;
             case CameraStreamingManager.STATE.STREAMING:
+                Log.e(TAG, "====state streaming");
                 mStatusMsgContent = getString(R.string.string_state_streaming);
                 setShutterButtonEnabled(true);
                 setShutterButtonPressed(true);
@@ -995,10 +1082,13 @@ public class StreamingBaseActivity extends Activity implements
         }
     }
 
+    private int mCameraId = Camera.CameraInfo.CAMERA_FACING_FRONT;
     private void updateCameraSwitcherButtonText(int camId) {
         if (mCameraSwitchBtn == null) {
             return;
         }
+        Log.e(TAG, "==========updateButton===============");
+        mCameraId = camId;
         if (camId == Camera.CameraInfo.CAMERA_FACING_FRONT) {
             mCameraSwitchBtn.setText("Back");
         } else {
@@ -1008,7 +1098,7 @@ public class StreamingBaseActivity extends Activity implements
 
     private void saveToSDCard(String filename, Bitmap bmp) throws IOException {
         if(Environment.getExternalStorageState().equals(Environment.MEDIA_MOUNTED)) {
-            File file = new File(Environment.getExternalStorageDirectory(), filename);
+            File file = new File(getExternalCacheDir(), filename);
             BufferedOutputStream bos = null;
             try {
                 bos = new BufferedOutputStream(new FileOutputStream(file));
@@ -1019,7 +1109,7 @@ public class StreamingBaseActivity extends Activity implements
                 if (bos != null) bos.close();
             }
 
-            final String info = "Save frame to:" + Environment.getExternalStorageDirectory().getAbsolutePath() + "/" + filename;
+            final String info = "Save frame to:" + getExternalCacheDir().getAbsolutePath() + "/" + filename;
             runOnUiThread(new Runnable() {
                 @Override
                 public void run() {
@@ -1071,6 +1161,7 @@ public class StreamingBaseActivity extends Activity implements
     protected void initStickerFiles(){
         String files[] = null;
         mStickerFilesList = new ArrayList<String>();
+        zipfiles = new ArrayList<String>();
 
         try {
             files = this.getAssets().list("");
@@ -1083,7 +1174,7 @@ public class StreamingBaseActivity extends Activity implements
         if (dataDir != null) {
             folderpath = dataDir.getAbsolutePath();
         }
-        String unzipFolder = folderpath+File.separator;
+//        String unzipFolder = folderpath+File.separator;
         for (int i = 0; i < files.length; i++) {
             String str = files[i];
             if(str.indexOf(".zip") != -1){
@@ -1091,14 +1182,13 @@ public class StreamingBaseActivity extends Activity implements
             }
         }
 
-        List<String> zipfiles = new ArrayList<String>();
         File file = new File(folderpath);
         File[] subFile = file.listFiles();
 
         for (int i = 0; i < subFile.length; i++) {
             // 判断是否为文件夹
             if (!subFile[i].isDirectory()) {
-                String filename = subFile[i].getName();
+                String filename = subFile[i].getAbsolutePath();
                 String path = subFile[i].getPath();
                 // 判断是否为zip结尾
                 if (filename.trim().toLowerCase().endsWith(".zip")) {
@@ -1107,61 +1197,38 @@ public class StreamingBaseActivity extends Activity implements
             }
         }
 
-        for (int j = 0; j < zipfiles.size(); j++) {
-            String src = zipfiles.get(j);
-            File unzipFile = new File(getFilePath(src));
-            try {
-                ZipUtils.upZipFile(unzipFile, unzipFolder);
-            } catch (IOException e) {
-                e.printStackTrace();
-                return;
-            }
-            mStickerFilesList.add(unzipFolder + src.substring(0, src.indexOf(".zip")));
-        }
-
     }
 
     private void initSticker(){
-        String modulePath = getFilePath("face_action.model");
-        String licensePath =getFilePath("MOBILESDK_FD681B7F-82D2-4917-B9B7-E0DB5D8D33ED.lic");
-
-        int[] codeLen = new int[1];
-        codeLen[0] = 1024;
-
-        String activeCode = getActiveCode("activecode");
-        int checkRes;
-
-        if(activeCode == null || activeCode.length()==0) {
-            activeCode = mStStickerNative.generateActiveCode("MobileSDK", licensePath, codeLen);
-            checkRes =  mStStickerNative.checkActiveCode("MobileSDK", licensePath, activeCode);
-            if(checkRes != 0) {
-                Log.e(TAG, "-->> license is out of date");
-                return;
-            } else {
-                saveActiveCode("active_code.txt", activeCode);
+        String modulePath = getFilePath("face_track_2.0.1.model");
+        boolean autheredByBuffer = true;
+        AuthCallback authCallback = new AuthCallback() {
+            @Override
+            public void authErr(final String err) {
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        Toast.makeText(getApplicationContext(), err, Toast.LENGTH_SHORT).show();
+                    }
+                });
             }
-        } else {
-            checkRes = mStStickerNative.checkActiveCode("MobileSDK", licensePath, activeCode);
-            if(checkRes != 0) {
-                Log.e(TAG, "-->> activeCode is out of date, need to generate another one");
-                activeCode = mStStickerNative.generateActiveCode("MobileSDK", licensePath, codeLen);
-                checkRes = mStStickerNative.checkActiveCode("MobileSDK", licensePath, activeCode);
-                if(checkRes != 0) {
-                    Log.e(TAG, "-->> license is invalid");
-                    return;
+        };
+
+        STMobileAuthentification auther = new STMobileAuthentification(getApplicationContext(), autheredByBuffer, authCallback);
+        if(autheredByBuffer && auther.hasAuthentificatedByBuffer() || !autheredByBuffer && auther.hasAuthentificatd()) {
+            mStickerFolderPath = zipfiles.get(0);
+            mCurrentStickerNum = 0;
+            int result1 =  mStStickerNative.createInstance(mStickerFolderPath, modulePath, 0x0000003F);
+            Log.i(TAG,"the result for createInstance for sticker is "+result1);
+        }else {
+            runOnUiThread(new Runnable() {
+                @Override
+                public void run() {
+                    Toast.makeText(getApplicationContext(), "you should be authered first!", Toast.LENGTH_SHORT).show();
                 }
-            }
+            });
         }
-//
-//        if(checkRes != 0) {
-//            Log.e(TAG, "-->> check activeCode failed!");
-//            return;
-//        }
-        //get the first sticker
-        mStickerFolderPath = mStickerFilesList.get(0);
-        mCurrentStickerNum = 0;
-        int result1 =  mStStickerNative.createInstance(mStickerFolderPath, modulePath, 0x0000003F);
-        Log.i(TAG,"the result for createInstance for sticker is "+result1);
+
     }
 
     public class ChangeStickerTask implements Runnable{
@@ -1174,10 +1241,10 @@ public class StreamingBaseActivity extends Activity implements
 
     private synchronized int changeSticker(){
         mCurrentStickerNum++;
-        if (mCurrentStickerNum == mStickerFilesList.size()) {
+        if (mCurrentStickerNum == zipfiles.size()) {
             mCurrentStickerNum = 0;
         }
-        mStickerFolderPath = mStickerFilesList.get(mCurrentStickerNum);
+        mStickerFolderPath = zipfiles.get(mCurrentStickerNum);
         int result = mStStickerNative.changeSticker(mStickerFolderPath);
         initStickerResult = result;
         return result;

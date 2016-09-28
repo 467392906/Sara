@@ -94,12 +94,17 @@ public class MainActivity extends Activity {
 
                 cameraproxy.openCamera(Camera.CameraInfo.CAMERA_FACING_FRONT);
                 mFrontOrientation = cameraproxy.getOrientation();
+                boolean isFrontFlipHorizontal = cameraproxy.isFlipHorizontal();
                 cameraproxy.releaseCamera();
 
+
                 cameraproxy.openCamera(Camera.CameraInfo.CAMERA_FACING_BACK);
+                boolean isBackFlipHorizontal = cameraproxy.isFlipHorizontal();
                 mBackOrientation = cameraproxy.getOrientation();
                 cameraproxy.releaseCamera();
 
+                intent.putExtra("frontcamera-fliphorizontal", isFrontFlipHorizontal);
+                intent.putExtra("backcamera-fliphorizontal", isBackFlipHorizontal);
                 intent.putExtra("frontcamera_orientation",mFrontOrientation);
                 intent.putExtra("backcamera_orientation",mBackOrientation);
                 startActivity(intent);

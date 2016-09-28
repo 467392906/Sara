@@ -29,9 +29,13 @@ public class STMobileStickerNative {
 
 	private long nativeHumanActionHandle;
 
-	public native String generateActiveCode(String productName, String licensePath, int[] activeCodeLen);
+	public native String generateActiveCode(String licensePath);
 
-	public native int checkActiveCode(String productName, String licensePath, String activationCode);
+	public native int checkActiveCode(String licensePath, String activationCode);
+
+	public native String generateActiveCodeFromBuffer(String licenseBuffer, int licenseSize);
+
+	public native int checkActiveCodeFromBuffer(String licenseBuffer, int licenseSize, String activationCode);
 
 	public native int createInstance(String zippath, String modelpath,int config);
 

@@ -7,9 +7,8 @@
 #include <math.h>
 #include <sys/time.h>
 #include <time.h>
-#include "prebuilt/include/st_common.h"
+#include "prebuilt/include/st_mobile_common.h"
 #include "prebuilt/include/st_mobile_beautify.h"
-#include "prebuilt/include/st_mobile_human_action.h"
 #include "prebuilt/include/st_mobile_sticker.h"
 
 #include<fcntl.h>
@@ -19,9 +18,10 @@
 #define  LOG_TAG    "STMobileSticker"
 
 extern "C" {
-JNIEXPORT jstring JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_generateActiveCode(JNIEnv * env, jobject obj, jstring productName, jstring licensePath, jintArray activeCodeLen);
-JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_checkActiveCode(JNIEnv * env, jobject obj, jstring productName, jstring licensePath, jstring activationCode);
-
+JNIEXPORT jstring JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_generateActiveCode(JNIEnv * env, jobject obj, jstring licensePath);
+JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_checkActiveCode(JNIEnv * env, jobject obj, jstring licensePath, jstring activationCode);
+JNIEXPORT jstring JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_generateActiveCodeFromBuffer(JNIEnv * env, jobject obj, jstring licenseBuffer, jint licenseSize);
+JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_checkActiveCodeFromBuffer(JNIEnv * env, jobject obj, jstring licenseBuffer, jint licenseSize, jstring activationCode);
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_createInstance(JNIEnv * env, jobject obj, jstring zippath, jstring modelpath, jint config);
 //JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_processBuffer(JNIEnv * env, jobject obj, jbyteArray pInputImage, jint rotate, jint imageWidth, jint imageHeight,jboolean needsMirroring,  jint textureOut);
 JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_processTexture(JNIEnv * env, jobject obj, jint textureIn, jbyteArray pInputImage, jint rotate, jint imageWidth, jint imageHeight, jboolean needsMirroring, jint textureOut);
@@ -71,7 +71,6 @@ void item_callback(const char* material_name, st_material_status statusCode) {
         if(isAttached) gJavaVM->DetachCurrentThread();
         return;
     }
-
 
     jstring resultStr = env->NewStringUTF(material_name);
     LOGE("-->> item_callback: resultStr=%s, status=%d",material_name, statusCode);
@@ -152,38 +151,62 @@ jlong handle = env->GetLongField(obj, getStickerHandleField(env, obj));
 return reinterpret_cast<void *>(handle);
 }
 
-JNIEXPORT jstring JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_generateActiveCode(JNIEnv * env, jobject obj, jstring productName, jstring licensePath, jintArray activeCodeLen) {
-    LOGI("-->> generateActiveCode: start genrate active code");
-    const char *targetProductName = env->GetStringUTFChars(productName, 0);
+JNIEXPORT jstring JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_generateActiveCode(JNIEnv * env, jobject obj, jstring licensePath) {
+    LOGI("-->> 111generateActiveCode: start genrate active code");
+//    const char *targetProductName = env->GetStringUTFChars(productName, 0);
     const char *targetLicensePath = env->GetStringUTFChars(licensePath, 0);
     char * activationCode = new char[1024];
     memset(activationCode, 0, 1024);
     int len = 1024;
     //	jint *len = (jint*) (env->GetPrimitiveArrayCritical(activeCodeLen, 0));
-    //LOGI("-->> targetProductName=%x, targetLicensePath=%x, targetActivationCode=%x, activeCodeLen=%x",targetProductName, targetLicensePath, activationCode, len);
-	LOGI("-->> targetProductName=%s, targetLicensePath=%s, targetActivationCode=%s",targetProductName, targetLicensePath, activationCode);
-    int res = st_mobile_generate_activecode(targetProductName, targetLicensePath, activationCode, &len);
-	LOGI("-->> targetProductName=%s, targetLicensePath=%s, targetActivationCode=%s",targetProductName, targetLicensePath, activationCode);
+    LOGI("-->> targetLicensePath=%x, targetActivationCode=%x, activeCodeLen=%x", targetLicensePath, activationCode, len);
+    int res = st_mobile_generate_activecode(targetLicensePath, activationCode, &len);
+	LOGI("-->> targetLicensePath=%s, targetActivationCode=%s",targetLicensePath, activationCode);
     LOGI("-->> generateActiveCode: res=%d",res);
     jstring targetActivationCode = env->NewStringUTF(activationCode);
 
-    env->ReleaseStringUTFChars(productName, targetProductName);
     env->ReleaseStringUTFChars(licensePath, targetLicensePath);
     //	env->ReleasePrimitiveArrayCritical(activeCodeLen, len, 0);
     return targetActivationCode;
 }
 
-JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_checkActiveCode(JNIEnv * env, jobject obj, jstring productName, jstring licensePath, jstring activationCode) {
+JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_checkActiveCode(JNIEnv * env, jobject obj, jstring licensePath, jstring activationCode) {
     LOGI("-->> checkActiveCode: start check active code");
-    const char *targetProductName = env->GetStringUTFChars(productName, 0);
+//    const char *targetProductName = env->GetStringUTFChars(productName, 0);
     const char *targetLicensePath = env->GetStringUTFChars(licensePath, 0);
     const char *targetActivationCode = env->GetStringUTFChars(activationCode, 0);
     //	LOGI("-->> targetProductName=%s, targetLicensePath=%s, targetActivationCode=%s",targetProductName, targetLicensePath, targetActivationCode);
-    int res = st_mobile_check_activecode(targetProductName, targetLicensePath, targetActivationCode);
-    //	LOGI("-->> checkActiveCode: res=%d",res);
-    env->ReleaseStringUTFChars(productName, targetProductName);
+    int res = st_mobile_check_activecode(targetLicensePath, targetActivationCode);
+    	LOGI("-->> checkActiveCode: res=%d",res);
     env->ReleaseStringUTFChars(licensePath, targetLicensePath);
     env->ReleaseStringUTFChars(activationCode, targetActivationCode);
+    return res;
+}
+
+JNIEXPORT jstring JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_generateActiveCodeFromBuffer(JNIEnv * env, jobject obj, jstring licenseBuffer, jint licenseSize) {
+    LOGI("-->> 222generateActiveCodeFromBuffer: start genrate active code");
+    const char *targetLicenseBuffer = env->GetStringUTFChars(licenseBuffer, 0);
+    char * activationCode = new char[1024];
+    memset(activationCode, 0, 1024);
+    int len = 1024;
+    int res = st_mobile_generate_activecode_from_buffer(targetLicenseBuffer, licenseSize, activationCode, &len);
+    LOGI("-->> targetLicenseBuffer=%s, license_size=%d, targetActivationCode=%s",targetLicenseBuffer, licenseSize, activationCode);
+    LOGI("-->> generateActiveCode: res=%d",res);
+    jstring targetActivationCode = env->NewStringUTF(activationCode);
+
+    env->ReleaseStringUTFChars(licenseBuffer, targetLicenseBuffer);
+    return targetActivationCode;
+}
+JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_checkActiveCodeFromBuffer(JNIEnv * env, jobject obj, jstring licenseBuffer, jint licenseSize, jstring activationCode) {
+    LOGI("-->> checkActiveCodeFromBuffer: start check active code");
+    const char *targetLicenseBuffer = env->GetStringUTFChars(licenseBuffer, 0);
+    const char *targetActiveCode = env->GetStringUTFChars(activationCode, 0);
+//    int license_size = licenseSize;
+    int res = st_mobile_check_activecode_from_buffer(targetLicenseBuffer, licenseSize, targetActiveCode);
+    LOGI("-->> checkActiveCodeFromBuffer: res=%d",res);
+
+    env->ReleaseStringUTFChars(licenseBuffer, targetLicenseBuffer);
+    env->ReleaseStringUTFChars(activationCode, targetActiveCode);
     return res;
 }
 
@@ -191,6 +214,8 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_createI
     LOGE("createInstance");
     st_handle_t  ha_handle = NULL;
     const char *modelpathChars = env->GetStringUTFChars(modelpath, 0);
+    const char *zippathChars = env->GetStringUTFChars(zippath, 0);
+    LOGI("-->> zippath=%s, modelpath=%s, config=%d", zippathChars, modelpathChars, config);
     int result = st_mobile_human_action_create(modelpathChars, config, &ha_handle);
     if(result != 0){
         LOGE("create handle for human action failed");
@@ -199,7 +224,6 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_createI
     setHumanActionHandle(env, obj, ha_handle);
 
     st_handle_t sticker_handle = NULL;
-    const char *zippathChars = env->GetStringUTFChars(zippath, 0);
     result = st_mobile_sticker_create(zippathChars, &sticker_handle);
     if(result != 0)
     {
@@ -208,6 +232,8 @@ JNIEXPORT jint JNICALL Java_com_sensetime_stmobile_STMobileStickerNative_createI
     }
     setStickerHandle(env, obj, sticker_handle);
 
+    env->ReleaseStringUTFChars(zippath, zippathChars);
+    env->ReleaseStringUTFChars(modelpath, modelpathChars);
     return result;
 }
 
