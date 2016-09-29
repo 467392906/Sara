@@ -1,11 +1,13 @@
 package com.pili.pldroid.streaming.camera.demo;
 
 import android.app.Activity;
+import android.app.VoiceInteractor;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.pm.ActivityInfo;
 import android.graphics.Bitmap;
 import android.hardware.Camera;
+import android.hardware.camera2.CameraManager;
 import android.opengl.GLES20;
 import android.opengl.Matrix;
 import android.os.Build;
@@ -430,7 +432,7 @@ public class StreamingBaseActivity extends Activity implements
         runOnUiThread(new Runnable() {
             @Override
             public void run() {
-                Toast.makeText(getApplicationContext(), "current preview size: " + mPreviewSizeHeight + "x" + mPreviewSizeWidth, Toast.LENGTH_LONG).show();
+                Toast.makeText(getApplicationContext(), "current preview size: " + mPreviewSizeHeight + "x" + mPreviewSizeWidth, Toast.LENGTH_SHORT).show();
             }
         });
         return size;
@@ -790,7 +792,11 @@ public class StreamingBaseActivity extends Activity implements
     private class Switcher implements Runnable {
         @Override
         public void run() {
-            Log.e(TAG, "enter switcher...........................");
+            Log.e(TAG, "enter switcher........................... ready: " + mIsReady + " state: " + mCurrentState);
+            if (mCurrentState < CameraStreamingManager.STATE.READY) {
+                Toast.makeText(getApplicationContext(), "Stream is not ready, please wait for it", Toast.LENGTH_LONG).show();
+                return ;
+            }
             mCameraStreamingManager.switchCamera();
             synchronized (StreamingBaseActivity.class) {
                 mIsSwitching = true;
@@ -860,8 +866,10 @@ public class StreamingBaseActivity extends Activity implements
         });
     }
 
+    private int mCurrentState = -1;
     @Override
     public void onStateChanged(final int state, Object extra) {
+        mCurrentState = state;
         switch (state) {
             case CameraStreamingManager.STATE.PREPARING:
                 mStatusMsgContent = getString(R.string.string_state_preparing);
@@ -881,6 +889,7 @@ public class StreamingBaseActivity extends Activity implements
                 mStatusMsgContent = getString(R.string.string_state_streaming);
                 setShutterButtonEnabled(true);
                 setShutterButtonPressed(true);
+                mIsSwitching = false;
                 break;
             case CameraStreamingManager.STATE.SHUTDOWN:
                 mStatusMsgContent = getString(R.string.string_state_ready);
