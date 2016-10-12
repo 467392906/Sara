@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.sensetime.stmobileapi.AuthCallback;
-import com.sensetime.stmobileapi.STMobile106;
 import com.sensetime.stmobileapi.STMobileFaceAction;
 import com.sensetime.stmobileapi.STMobileMultiTrack106;
 import com.sensetime.stmobileapi.STUtils;
@@ -21,6 +20,9 @@ import android.graphics.Paint.Style;
 import android.hardware.Camera;
 import android.hardware.Camera.PreviewCallback;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Message;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -51,15 +53,20 @@ public class FaceOverlapFragment extends CameraOverlapFragment{
 	// private FaceTrackerBase tracker = null;
 	private STMobileMultiTrack106 tracker = null;
 	TrackCallBack mListener;
-	private Thread thread;
-	private boolean killed = false;
+	//private Thread thread;
+	//private boolean killed = false;
+	private HandlerThread mHandlerThread;
+	private Handler mHandler;
+	private final int MESSAGE_DRAW_POINTS=100;
 	private byte nv21[];
+	private byte[] mTmpBuffer;
+	private List<Long> mTimeCounter;
+	private int mTimeStart = 0;
 	private Bitmap bitmap;
 	public static int fps;
 	static boolean DEBUG = false;
-	private boolean isNV21ready = false;
 	private Paint mPaint;
-	
+
 	@SuppressLint("NewApi")
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -67,29 +74,158 @@ public class FaceOverlapFragment extends CameraOverlapFragment{
 		View view = super.onCreateView(inflater, container, savedInstanceState);
 
 		nv21 = new byte[PREVIEW_WIDTH * PREVIEW_HEIGHT * 2];
+		mTmpBuffer = new byte[PREVIEW_WIDTH * PREVIEW_HEIGHT * 2];
+		mTimeCounter = new ArrayList<Long>();
 
 		mPaint = new Paint(); 
 		mPaint.setColor(Color.rgb(57, 138, 243));
 		int strokeWidth = Math.max(PREVIEW_HEIGHT / 240, 2);
 		mPaint.setStrokeWidth(strokeWidth);
 		mPaint.setStyle(Style.FILL);
-
+        mHandlerThread = new HandlerThread("DrawFacePointsThread");
+        mHandlerThread.start();
+		mHandler = new Handler(mHandlerThread.getLooper())
+		{
+			@Override
+			public void handleMessage(Message msg) {
+				if (msg.what == MESSAGE_DRAW_POINTS) {
+					handleDrawPoints();
+				}
+			}
+		};
 		this.setPreviewCallback(new PreviewCallback() {
 			@Override
 			public void onPreviewFrame(byte[] data, Camera camera) {
 				synchronized (nv21) {
 					System.arraycopy(data, 0, nv21, 0, data.length);
-					isNV21ready = true;
 				}
-			}
 
+				mHandler.removeMessages(MESSAGE_DRAW_POINTS);
+				mHandler.sendEmptyMessage(MESSAGE_DRAW_POINTS);
+			}
 		});
 		return view;
 	}
 
+	private void handleDrawPoints()
+	{
+		synchronized (nv21) {
+			System.arraycopy(nv21, 0, mTmpBuffer, 0, nv21.length);
+		}
+
+		/**
+		 * 如果使用前置摄像头，请注意显示的图像与帧图像左右对称，需处理坐标
+		 */
+		boolean frontCamera = (CameraFacing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+
+		/**
+		 * 获取重力传感器返回的方向
+		 */
+		int dir = Accelerometer.getDirection();
+
+		/**
+		 * 请注意前置摄像头与后置摄像头旋转定义不同
+		 * 请注意不同手机摄像头旋转定义不同
+		 */
+		if (((mCameraInfo.orientation == 270 && (dir & 1) == 1) ||
+				(mCameraInfo.orientation == 90 && (dir & 1) == 0)))
+			dir = (dir ^ 2);
+
+		/**
+		 * 调用实时人脸检测函数，返回当前人脸信息
+		 */
+		long start_track = System.currentTimeMillis();
+		STMobileFaceAction[] faceActions = tracker.trackFaceAction(mTmpBuffer, dir, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+		long end_track = System.currentTimeMillis();
+		Log.i("track106", "track cost " + (end_track - start_track) + " ms");
+
+		long timer = System.currentTimeMillis();
+		mTimeCounter.add(timer);
+		Log.d("zdp",""+ mTimeCounter.size());
+		while (mTimeStart < mTimeCounter.size()
+				&& mTimeCounter.get(mTimeStart) < timer - 1000) {
+			mTimeStart++;
+		}
+		fps = mTimeCounter.size() - mTimeStart;
+		try {
+			if (faceActions != null && faceActions.length > 0) {
+				int length = (faceActions == null ? 0 : faceActions.length - 1);
+				STMobileFaceAction faceAction = faceActions[length];
+				mListener.onTrackdetected(fps, faceAction.face.pitch, faceAction.face.roll, faceAction.face.yaw, faceAction.face.eye_dist, faceAction.face.ID,
+						checkFlag(faceAction.face_action, ST_MOBILE_EYE_BLINK), checkFlag(faceAction.face_action, ST_MOBILE_MOUTH_AH), checkFlag(faceAction.face_action, ST_MOBILE_HEAD_YAW),
+						checkFlag(faceAction.face_action, ST_MOBILE_HEAD_PITCH), checkFlag(faceAction.face_action, ST_MOBILE_BROW_JUMP));
+			}
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		if (mTimeStart > 100) {
+			mTimeCounter = mTimeCounter.subList(mTimeStart,
+					mTimeCounter.size() - 1);
+			mTimeStart = 0;
+		}
+
+		/**
+		 * 绘制人脸框
+		 */
+		if (faceActions != null) {
+			if (DEBUG) {
+				for (int i = 0; i < faceActions.length; i++) {
+					Log.i("Test", "detect faces: " + faceActions[i].getFace().getRect().toString());
+				}
+
+			}
+
+			Canvas canvas = mOverlap.getHolder().lockCanvas();
+
+			if (canvas == null)
+				return;
+
+			canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+			canvas.setMatrix(getMatrix());
+			boolean rotate270 = mCameraInfo.orientation == 270;
+			for (STMobileFaceAction r : faceActions) {
+				// Rect rect = r.getRect();
+				Rect rect;
+				if (rotate270) {
+					rect = STUtils.RotateDeg270(r.getFace().getRect(), PREVIEW_WIDTH, PREVIEW_HEIGHT);
+				} else {
+					rect = STUtils.RotateDeg90(r.getFace().getRect(), PREVIEW_WIDTH, PREVIEW_HEIGHT);
+				}
+
+				PointF[] points = r.getFace().getPointsArray();
+				for (int i = 0; i < points.length; i++) {
+					if (rotate270) {
+						points[i] = STUtils.RotateDeg270(points[i], PREVIEW_WIDTH, PREVIEW_HEIGHT);
+					} else {
+						points[i] = STUtils.RotateDeg90(points[i], PREVIEW_WIDTH, PREVIEW_HEIGHT);
+					}
+
+				}
+				STUtils.drawFaceRect(canvas, rect, PREVIEW_HEIGHT,
+						PREVIEW_WIDTH, frontCamera);
+				STUtils.drawPoints(canvas, mPaint, points, PREVIEW_HEIGHT,
+						PREVIEW_WIDTH, frontCamera);
+
+			}
+			mOverlap.getHolder().unlockCanvasAndPost(canvas);
+		}
+	}
+	@Override
+	public void onDestroy()
+	{
+		super.onDestroy();
+		if(mHandlerThread != null)
+		{
+			mHandlerThread.quit();
+			mHandlerThread = null;
+		}
+	}
+
+
 	@Override
 	public void onResume() {
 		super.onResume();
+
 		if (MultitrackerActivity.acc != null)
 			MultitrackerActivity.acc.start();
 
@@ -117,136 +253,130 @@ public class FaceOverlapFragment extends CameraOverlapFragment{
 			Log.i("track106", "init cost "+(end_init - start_init) +" ms");
 		}
 
-		killed = false;
-		final byte[] tmp = new byte[PREVIEW_WIDTH * PREVIEW_HEIGHT * 2];
-		thread = new Thread() {
-			@Override
-			public void run() {
-				List<Long> timeCounter = new ArrayList<Long>();
-				int start = 0;
-				while (!killed) {
-					
-					if(!isNV21ready)
-						continue;
 
-					synchronized (nv21) {
-						System.arraycopy(nv21, 0, tmp, 0, nv21.length);
-						isNV21ready = false;
-					}
-
-					/**
-					 * 如果使用前置摄像头，请注意显示的图像与帧图像左右对称，需处理坐标
-					 */
-					boolean frontCamera = (CameraFacing == Camera.CameraInfo.CAMERA_FACING_FRONT);
-
-					/**
-					 * 获取重力传感器返回的方向
-					 */
-					int dir = Accelerometer.getDirection();
-
-					/**
-					 * 请注意前置摄像头与后置摄像头旋转定义不同
-					 * 请注意不同手机摄像头旋转定义不同
-					 */
-					if (((mCameraInfo.orientation == 270 && (dir & 1) == 1) ||
-							 (mCameraInfo.orientation == 90 && (dir & 1) == 0)))
-						dir = (dir ^ 2);
-
-					/**
-					 * 调用实时人脸检测函数，返回当前人脸信息
-					 */
-					long start_track = System.currentTimeMillis();
-                    STMobileFaceAction[] faceActions = tracker.trackFaceAction(tmp, dir, PREVIEW_WIDTH, PREVIEW_HEIGHT);
-					long end_track = System.currentTimeMillis();
-					Log.i("track106", "track cost "+(end_track - start_track)+" ms");
-
-					long timer = System.currentTimeMillis();
-					timeCounter.add(timer);
-					while (start < timeCounter.size()
-							&& timeCounter.get(start) < timer - 1000) {
-						start++;
-					}
-					fps = timeCounter.size() - start;
-					try {
-						if (faceActions != null && faceActions.length > 0) {
-							int length = (faceActions == null ?  0 : faceActions.length - 1);
-							STMobileFaceAction faceAction = faceActions[length];
-	                        mListener.onTrackdetected(fps,  faceAction.face.pitch, faceAction.face.roll, faceAction.face.yaw, faceAction.face.eye_dist, faceAction.face.ID,
-	                                        checkFlag(faceAction.face_action, ST_MOBILE_EYE_BLINK), checkFlag(faceAction.face_action, ST_MOBILE_MOUTH_AH), checkFlag(faceAction.face_action, ST_MOBILE_HEAD_YAW),
-	                                        checkFlag(faceAction.face_action, ST_MOBILE_HEAD_PITCH), checkFlag(faceAction.face_action, ST_MOBILE_BROW_JUMP));
-						}
-					} catch(Exception e) {
-						e.printStackTrace();
-					}
-					if (start > 100) {
-						timeCounter = timeCounter.subList(start,
-								timeCounter.size() - 1);
-						start = 0;
-					}
-
-					/**
-					 * 绘制人脸框
-					 */
-                    if(faceActions != null) {
-						if(DEBUG){						
-                            for(int i=0; i<faceActions.length; i++) {
-                              Log.i("Test", "detect faces: "+ faceActions[i].getFace().getRect().toString());
-							}
-							
-						}
-						
-						Canvas canvas = mOverlap.getHolder().lockCanvas();
-
-						if (canvas == null)
-							continue;
-
-						canvas.drawColor(0, PorterDuff.Mode.CLEAR);
-						canvas.setMatrix(getMatrix());
-						boolean rotate270 = mCameraInfo.orientation == 270;
-                        for (STMobileFaceAction r : faceActions) {
-							// Rect rect = r.getRect();
-							Rect rect;
-							if (rotate270) {
-                                rect = STUtils.RotateDeg270(r.getFace().getRect(), PREVIEW_WIDTH, PREVIEW_HEIGHT);
-							} else {
-                                rect = STUtils.RotateDeg90(r.getFace().getRect(), PREVIEW_WIDTH, PREVIEW_HEIGHT);
-							}
-							
-                            PointF[] points = r.getFace().getPointsArray();
-							for (int i = 0; i < points.length; i++) {
-								if (rotate270) {
-									points[i] = STUtils.RotateDeg270(points[i], PREVIEW_WIDTH, PREVIEW_HEIGHT);
-								} else {
-									points[i] = STUtils.RotateDeg90(points[i], PREVIEW_WIDTH, PREVIEW_HEIGHT);
-								}
-								
-							}
-							STUtils.drawFaceRect(canvas, rect, PREVIEW_HEIGHT,
-									PREVIEW_WIDTH, frontCamera);
-							STUtils.drawPoints(canvas, mPaint, points, PREVIEW_HEIGHT,
-									PREVIEW_WIDTH, frontCamera);
-
-						}
-						mOverlap.getHolder().unlockCanvasAndPost(canvas);
-					}
-				}
-			}
-		};
-
-		thread.start();
+//		killed = false;
+//		final byte[] tmp = new byte[PREVIEW_WIDTH * PREVIEW_HEIGHT * 2];
+//		thread = new Thread() {
+//			@Override
+//			public void run() {
+//				List<Long> mTimeCounter = new ArrayList<Long>();
+//				int mTimeStart = 0;
+//				while (!killed) {
+//
+//					if(!isNV21ready)
+//						continue;
+//
+//					synchronized (nv21) {
+//						System.arraycopy(nv21, 0, tmp, 0, nv21.length);
+//						isNV21ready = false;
+//					}
+//
+//					/**
+//					 * 如果使用前置摄像头，请注意显示的图像与帧图像左右对称，需处理坐标
+//					 */
+//					boolean frontCamera = (CameraFacing == Camera.CameraInfo.CAMERA_FACING_FRONT);
+//
+//					/**
+//					 * 获取重力传感器返回的方向
+//					 */
+//					int dir = Accelerometer.getDirection();
+//
+//					/**
+//					 * 请注意前置摄像头与后置摄像头旋转定义不同
+//					 * 请注意不同手机摄像头旋转定义不同
+//					 */
+//					if (((mCameraInfo.orientation == 270 && (dir & 1) == 1) ||
+//							 (mCameraInfo.orientation == 90 && (dir & 1) == 0)))
+//						dir = (dir ^ 2);
+//
+//					/**
+//					 * 调用实时人脸检测函数，返回当前人脸信息
+//					 */
+//					long start_track = System.currentTimeMillis();
+//                    STMobileFaceAction[] faceActions = tracker.trackFaceAction(tmp, dir, PREVIEW_WIDTH, PREVIEW_HEIGHT);
+//					long end_track = System.currentTimeMillis();
+//					Log.i("track106", "track cost "+(end_track - start_track)+" ms");
+//
+//					long timer = System.currentTimeMillis();
+//					mTimeCounter.add(timer);
+//					while (mTimeStart < mTimeCounter.size()
+//							&& mTimeCounter.get(mTimeStart) < timer - 1000) {
+//						mTimeStart++;
+//					}
+//					fps = mTimeCounter.size() - mTimeStart;
+//					try {
+//						if (faceActions != null && faceActions.length > 0) {
+//							int length = (faceActions == null ?  0 : faceActions.length - 1);
+//							STMobileFaceAction faceAction = faceActions[length];
+//	                        mListener.onTrackdetected(fps,  faceAction.face.pitch, faceAction.face.roll, faceAction.face.yaw, faceAction.face.eye_dist, faceAction.face.ID,
+//	                                        checkFlag(faceAction.face_action, ST_MOBILE_EYE_BLINK), checkFlag(faceAction.face_action, ST_MOBILE_MOUTH_AH), checkFlag(faceAction.face_action, ST_MOBILE_HEAD_YAW),
+//	                                        checkFlag(faceAction.face_action, ST_MOBILE_HEAD_PITCH), checkFlag(faceAction.face_action, ST_MOBILE_BROW_JUMP));
+//						}
+//					} catch(Exception e) {
+//						e.printStackTrace();
+//					}
+//					if (mTimeStart > 100) {
+//						mTimeCounter = mTimeCounter.subList(mTimeStart,
+//								mTimeCounter.size() - 1);
+//						mTimeStart = 0;
+//					}
+//
+//					/**
+//					 * 绘制人脸框
+//					 */
+//                    if(faceActions != null) {
+//						if(DEBUG){
+//                            for(int i=0; i<faceActions.length; i++) {
+//                              Log.i("Test", "detect faces: "+ faceActions[i].getFace().getRect().toString());
+//							}
+//
+//						}
+//
+//						Canvas canvas = mOverlap.getHolder().lockCanvas();
+//
+//						if (canvas == null)
+//							continue;
+//
+//						canvas.drawColor(0, PorterDuff.Mode.CLEAR);
+//						canvas.setMatrix(getMatrix());
+//						boolean rotate270 = mCameraInfo.orientation == 270;
+//                        for (STMobileFaceAction r : faceActions) {
+//							// Rect rect = r.getRect();
+//							Rect rect;
+//							if (rotate270) {
+//                                rect = STUtils.RotateDeg270(r.getFace().getRect(), PREVIEW_WIDTH, PREVIEW_HEIGHT);
+//							} else {
+//                                rect = STUtils.RotateDeg90(r.getFace().getRect(), PREVIEW_WIDTH, PREVIEW_HEIGHT);
+//							}
+//
+//                            PointF[] points = r.getFace().getPointsArray();
+//							for (int i = 0; i < points.length; i++) {
+//								if (rotate270) {
+//									points[i] = STUtils.RotateDeg270(points[i], PREVIEW_WIDTH, PREVIEW_HEIGHT);
+//								} else {
+//									points[i] = STUtils.RotateDeg90(points[i], PREVIEW_WIDTH, PREVIEW_HEIGHT);
+//								}
+//
+//							}
+//							STUtils.drawFaceRect(canvas, rect, PREVIEW_HEIGHT,
+//									PREVIEW_WIDTH, frontCamera);
+//							STUtils.drawPoints(canvas, mPaint, points, PREVIEW_HEIGHT,
+//									PREVIEW_WIDTH, frontCamera);
+//
+//						}
+//						mOverlap.getHolder().unlockCanvasAndPost(canvas);
+//					}
+//				}
+//			}
+//		};
+//
+//		thread.mTimeStart();
 	}
 
 	@Override
 	public void onPause() {
 		if (MultitrackerActivity.acc != null)
 			MultitrackerActivity.acc.stop();
-		killed = true;
-		if (thread != null)
-			try {
-				thread.join(1000);
-			} catch (InterruptedException e1) {
-				e1.printStackTrace();
-			}
 		if (tracker != null) {
 			System.out.println("destroy tracker");
 			tracker.destory();
@@ -254,6 +384,8 @@ public class FaceOverlapFragment extends CameraOverlapFragment{
 		}
 		super.onPause();
 	}
+
+
 
 	public void registTrackCallback(TrackCallBack callback) {
 		mListener = callback;
@@ -267,7 +399,8 @@ public class FaceOverlapFragment extends CameraOverlapFragment{
 	
     private int checkFlag(int action, int flag) {
         int res = action & flag;
+
+
         return res==0?0:1;
     }
-
 }
