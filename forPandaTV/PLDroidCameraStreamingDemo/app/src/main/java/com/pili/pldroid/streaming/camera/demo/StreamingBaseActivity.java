@@ -543,8 +543,6 @@ public class StreamingBaseActivity extends Activity implements
         Log.i(TAG,"the result is for initBeautify "+result);
         mStImageFilterNative.setParam(STBeautyParamsType.ST_BEAUTIFY_CONTRAST_STRENGTH, 7/7);
         mStImageFilterNative.setParam(STBeautyParamsType.ST_BEAUTIFY_SMOOTH_STRENGTH, 7/7);
-        mStImageFilterNative.setParam(STBeautyParamsType.ST_BEAUTIFY_TONE_STRENGTH, 7/7);
-
         mCameraInputRender.onDisplaySizeChanged(width, height);
         mCameraInputRender.onOutputSizeChanged(mPreviewSizeWidth, mPreviewSizeHeight);
         mSurfaceWidth = width;
