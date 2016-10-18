@@ -3,8 +3,8 @@
 
     <string name="app_name">美颜Sample</string>
     <string name="gpudemoinfo">SenseTime 美颜DEMO</string>
-    <string name="gallery">相册</string>
-    <string name="camera">实时</string>
+    <string name="gallery">图片美颜</string>
+    <string name="camera">视频美颜</string>
     <string name="no_filter">原图</string>
 	<string name="capture">拍照</string>
     <string name="whiten">白皙</string>
@@ -12,4 +12,9 @@
 	<string name="compare">对比</string>
 	<string name="save">保存</string>
 	<string name="saving">保存中</string>
+	<string name="tab_beautify">美颜磨皮</string>
+	<string name="tab_eyeface">瘦脸大眼</string>
+	<string name="bigeye">大眼</string>
+	<string name="beautifyface">瘦脸</string>
+	<string name="beauface">美颜</string>
 </resources>

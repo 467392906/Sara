@@ -1,17 +1,11 @@
 package com.sensetime.stmobilebeauty;
 
-import java.io.InputStream;
-import java.net.URL;
-
 import com.sensetime.stmobilebeauty.display.ImageDisplay;
 import com.sensetime.stmobilebeauty.utils.Constants;
 import com.sensetime.stmobilebeauty.utils.SaveTask.onPictureSaveListener;
 import com.sensetime.stmobilesample.R;
 
 import android.app.Activity;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
-import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteException;
@@ -30,6 +24,8 @@ import android.view.View.OnClickListener;
 import android.view.View.OnTouchListener;
 import android.widget.Button;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.LinearLayout.LayoutParams;
 
@@ -40,6 +36,12 @@ public class GalleryActivity extends Activity implements OnClickListener{
 	private TextView mSaveInfo;
 	private Button mCurrentBtn;
 	private Button mCompareBtn;
+	private RadioButton mTabBeautify;
+	private RadioButton mTabEyeFace;
+    private LinearLayout mTabEyeFaceLevel, mTabBeautifyLevel;
+    private TextView mTvFaceNum, mTvEyeNum;
+    private SeekBar mSbEye, mSbFace;
+    private boolean mIsFirstEyeFace = true, mIsFirstBeautify = true;
 	
     @Override
     public void onCreate(final Bundle savedInstanceState) {
@@ -47,13 +49,13 @@ public class GalleryActivity extends Activity implements OnClickListener{
         requestWindowFeature(Window.FEATURE_NO_TITLE);
         setContentView(R.layout.activity_gallery);
         
-        mSaveImageText = (TextView)findViewById(R.id.gallery_save);
+        mSaveImageText = (TextView)findViewById(R.id.capture);
         mSaveImageText.setOnClickListener(this);
         
         mSaveInfo = (TextView)findViewById(R.id.saveing_info);
         mSaveInfo.setVisibility(View.GONE);
         
-        initLevelView();
+//        initLevelView();
         initView();
         initDisplayView();
     }
@@ -70,30 +72,74 @@ public class GalleryActivity extends Activity implements OnClickListener{
     
 	private void initLevelView()
 	{
-		LinearLayout beautyLevel = (LinearLayout)findViewById(R.id.gallery_beautylevel);
-    	int size = 7;
-    	for(int i=0; i< size; i++)
-    	{
-    		Button button=new Button(this);			
-    		button.setId(i+1);			
-    		button.setText(String.valueOf(i+1));
-    		button.setBackgroundResource(R.drawable.selector_btn_background);
+        int size = 7;
+        for(int i=0; i< size; i++)
+        {
+            Button button=new Button(this);            
+            button.setId(i+1);            
+            button.setText(String.valueOf(i+1));
+            button.setBackgroundResource(R.drawable.selector_btn_background);
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT);
             params.weight = 1.0f;
+            params.topMargin = 60;
+            params.bottomMargin = 60;
             button.setLayoutParams(params);
-    		if(i == 3)
-    		{
-    			button.setSelected(true);
-    			mCurrentBtn = button;
-    		}
-    		button.setOnClickListener(this);
-    		beautyLevel.addView(button);
-    	}
+            button.setOnClickListener(this);
+            if(i == 3)
+            {
+                button.setSelected(true);
+                mCurrentBtn = button;
+            }
+            button.setActivated(true);
+            mTabBeautifyLevel.addView(button);
+        }
 	}
 	
+    private void initLevelBar() {       
+        mTvEyeNum = (TextView) mTabEyeFaceLevel.findViewById(R.id.tv_eye_num);
+        mTvFaceNum = (TextView) findViewById(R.id.tv_face_num);
+        mSbEye = (SeekBar) findViewById(R.id.sb_eye);
+        mSbFace = (SeekBar) findViewById(R.id.sb_face);
+
+        mSbEye.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mTvEyeNum.setText(progress+"");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+
+        mSbFace.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                mTvFaceNum.setText(progress+"");
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
+    }
+
+	
 	private void initView(){
-		mCompareBtn = (Button)findViewById(R.id.gallery_compare);
+		mCompareBtn = (Button)findViewById(R.id.compare);
 		mCompareBtn.setOnTouchListener(new OnTouchListener() {
 			
 			@Override
@@ -107,6 +153,18 @@ public class GalleryActivity extends Activity implements OnClickListener{
 				return true;
 			}
 		});
+		
+        mTabEyeFaceLevel = (LinearLayout)findViewById(R.id.tab_eyeface_level);
+        mTabBeautifyLevel = (LinearLayout) findViewById(R.id.tab_beautify_level);
+        mTabBeautify = (RadioButton) findViewById(R.id.rb_beautify);
+        mTabEyeFace = (RadioButton) findViewById(R.id.rb_eyeface);
+        mTabEyeFace.setOnClickListener(this);
+        mTabBeautify.setOnClickListener(this);
+        if(mIsFirstBeautify) {
+            initLevelView();
+            mIsFirstBeautify = false;
+        }
+        mTabBeautifyLevel.setVisibility(View.VISIBLE);
 	}
 	
 	@Override
@@ -254,12 +312,29 @@ public class GalleryActivity extends Activity implements OnClickListener{
 	public void onClick(View v) {
 		// TODO Auto-generated method stub
 	    switch (v.getId()) {
-	    case R.id.gallery_save:
+	    case R.id.capture:
 			mSaveImageText.setEnabled(false);
 			mSaveImageText.setTextColor(Color.GRAY);
 			mSaveInfo.setVisibility(View.VISIBLE);
 			mImageDisplay.savaImage(Constants.getOutputMediaFile(), mPictureSaveListener);
 	    	break;
+        case R.id.rb_beautify:          
+            mTabEyeFaceLevel.setVisibility(View.INVISIBLE);
+            if(mIsFirstBeautify) {
+                initLevelView();
+                mIsFirstBeautify = false;
+            }
+            mTabBeautifyLevel.setVisibility(View.VISIBLE);
+            break;
+        case R.id.rb_eyeface:        
+            mTabBeautifyLevel.setVisibility(View.INVISIBLE);
+            if(mIsFirstEyeFace) {
+                initLevelBar();
+                mIsFirstEyeFace = false;
+            }
+            mTabEyeFaceLevel.setVisibility(View.VISIBLE);
+            break;
+
          default:
  			if(mCurrentBtn != null){
 				mCurrentBtn.setSelected(false);

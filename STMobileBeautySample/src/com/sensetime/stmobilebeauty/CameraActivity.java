@@ -13,37 +13,26 @@ import com.sensetime.stmobilebeauty.utils.SaveTask.onPictureSaveListener;
 import com.sensetime.stmobilesample.R;
 
 import android.app.Activity;
-import android.app.FragmentManager;
-import android.app.FragmentTransaction;
-import android.content.res.ColorStateList;
-import android.content.res.Configuration;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Color;
-import android.graphics.ColorMatrixColorFilter;
-import android.graphics.SurfaceTexture;
 import android.hardware.Camera;
 import android.hardware.Camera.PictureCallback;
-import android.media.ExifInterface;
 import android.opengl.GLSurfaceView;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.MotionEvent;
 import android.view.OrientationEventListener;
 import android.view.View;
 import android.view.WindowManager;
 import android.view.View.OnClickListener;
-import android.view.View.OnFocusChangeListener;
 import android.view.View.OnTouchListener;
 import android.view.Window;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.LinearLayout.LayoutParams;
+import android.widget.RadioButton;
+import android.widget.SeekBar;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.AdapterView.OnItemSelectedListener;
@@ -55,6 +44,12 @@ public class CameraActivity extends Activity implements OnClickListener{
 	private TextView mCapturePhoto;
 	private Button mCurrentBtn;
 	private Button mCompareBtn;
+	private RadioButton mTabBeautify;
+	private RadioButton mTabEyeFace;
+	private LinearLayout mTabEyeFaceLevel, mTabBeautifyLevel;
+	private TextView mTvFaceNum, mTvEyeNum;
+	private SeekBar mSbEye, mSbFace;
+	private boolean mIsFirstEyeFace = true, mIsFirstBeautify = true;
 
 	private int mCurrentRotation = 0;
 	private long mStartTakePicTime;
@@ -122,7 +117,19 @@ public class CameraActivity extends Activity implements OnClickListener{
 				return true;
 			}
 		});
-		initLevelView();
+
+		mTabEyeFaceLevel = (LinearLayout)findViewById(R.id.tab_eyeface_level);
+		mTabBeautifyLevel = (LinearLayout) findViewById(R.id.tab_beautify_level);
+		mTabBeautify = (RadioButton) findViewById(R.id.rb_beautify);
+		mTabEyeFace = (RadioButton) findViewById(R.id.rb_eyeface);
+		mTabEyeFace.setOnClickListener(this);
+		mTabBeautify.setOnClickListener(this);
+
+		if(mIsFirstBeautify) {
+			initLevelView();
+			mIsFirstBeautify = false;
+		}
+		mTabBeautifyLevel.setVisibility(View.VISIBLE);
 	}
 		
 	@Override
@@ -204,6 +211,22 @@ public class CameraActivity extends Activity implements OnClickListener{
 			mPreviewSizeSpinner.setEnabled(false);
 			break;
 		}
+		case R.id.rb_beautify:
+			mTabEyeFaceLevel.setVisibility(View.INVISIBLE);
+			if(mIsFirstBeautify) {
+				initLevelView();
+				mIsFirstBeautify = false;
+			}
+			mTabBeautifyLevel.setVisibility(View.VISIBLE);
+			break;
+		case R.id.rb_eyeface:
+			mTabBeautifyLevel.setVisibility(View.INVISIBLE);
+			if(mIsFirstEyeFace) {
+				initLevelBar();
+				mIsFirstEyeFace = false;
+			}
+			mTabEyeFaceLevel.setVisibility(View.VISIBLE);
+			break;
 		default:
 			if(mCurrentBtn != null){
 				mCurrentBtn.setSelected(false);
@@ -219,7 +242,6 @@ public class CameraActivity extends Activity implements OnClickListener{
 	
 	private void initLevelView()
 	{
-		LinearLayout beautyLevel = (LinearLayout)findViewById(R.id.beautify_level);
     	int size = 7;
     	for(int i=0; i< size; i++)
     	{
@@ -230,6 +252,8 @@ public class CameraActivity extends Activity implements OnClickListener{
             LinearLayout.LayoutParams params = new LinearLayout.LayoutParams(
                     LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT);
             params.weight = 1.0f;
+			params.topMargin = 60;
+			params.bottomMargin = 60;
             button.setLayoutParams(params);
     		button.setOnClickListener(this);
     		if(i == 3)
@@ -238,10 +262,51 @@ public class CameraActivity extends Activity implements OnClickListener{
     			mCurrentBtn = button;
     		}
     		button.setActivated(true);
-    		beautyLevel.addView(button);
+    		mTabBeautifyLevel.addView(button);
     	}
 	}
-	
+
+	private void initLevelBar() {
+		mTvEyeNum = (TextView) mTabEyeFaceLevel.findViewById(R.id.tv_eye_num);
+		mTvFaceNum = (TextView) findViewById(R.id.tv_face_num);
+		mSbEye = (SeekBar) findViewById(R.id.sb_eye);
+		mSbFace = (SeekBar) findViewById(R.id.sb_face);
+
+		mSbEye.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+				mTvEyeNum.setText(progress+"");
+			}
+
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+
+			}
+
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+
+			}
+		});
+
+		mSbFace.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+			@Override
+			public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+				mTvFaceNum.setText(progress+"");
+			}
+
+			@Override
+			public void onStartTrackingTouch(SeekBar seekBar) {
+
+			}
+
+			@Override
+			public void onStopTrackingTouch(SeekBar seekBar) {
+
+			}
+		});
+	}
+
 	private final void startOrientationChangeListener()
 	{
 		mOrientationEventListener = new OrientationEventListener(this) {

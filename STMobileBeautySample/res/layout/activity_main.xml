@@ -1,44 +1,43 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
-    android:layout_height="match_parent" >
+    android:layout_height="match_parent"
+    android:background="@drawable/bg_beautify_welcome">
 
-  <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:orientation="vertical" >
-   <TextView
-            android:id="@+id/demoinfo"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:paddingBottom="24dp"
-            android:layout_gravity="center"
-            android:text="@string/gpudemoinfo"
-            android:textSize="20dp"
-            android:textColor="@android:color/black" />
     <LinearLayout
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center"
-        android:gravity="center"
-        android:orientation="horizontal" >
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center"
+          android:gravity="center"
+          android:orientation="vertical" >
+        <ImageView
+            android:layout_width="200dp"
+            android:layout_height="200dp"
+            android:src="@drawable/firstpagehead"/>
 
-        <Button
-            android:id="@+id/button_gallery"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_marginRight="10dp"
-            android:drawableTop="@android:drawable/ic_menu_gallery"
-            android:text="@string/gallery" />
+        <LinearLayout
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:layout_gravity="center"
+          android:layout_marginTop="70dp"
+          android:gravity="center"
+          android:orientation="vertical" >
 
-        <Button
-            android:id="@+id/button_camera"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:drawableTop="@android:drawable/ic_menu_camera"
-            android:text="@string/camera" />
-    </LinearLayout>
-</LinearLayout>>
+          <Button
+              android:id="@+id/button_gallery"
+              android:layout_width="200dp"
+              android:layout_height="wrap_content"
+              android:background="@color/white"
+              android:text="@string/gallery" />
+
+          <Button
+              android:id="@+id/button_camera"
+              android:layout_width="200dp"
+              android:layout_height="wrap_content"
+              android:background="@color/white"
+              android:layout_marginTop="30dp"
+              android:text="@string/camera" />
+      </LinearLayout>
+  </LinearLayout>
+    >
 </FrameLayout>

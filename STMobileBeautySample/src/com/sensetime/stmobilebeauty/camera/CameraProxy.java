@@ -154,7 +154,7 @@ public class CameraProxy {
         }
 		Point previewSize = getSuitablePreviewSize();
 	//	parameters.setPreviewSize(previewSize.x, previewSize.y);
-		parameters.setPreviewSize(1920, 1080);
+		parameters.setPreviewSize(640, 480);
 		Point pictureSize = getSuitablePictureSize();
 		parameters.setPictureSize(pictureSize.x, pictureSize.y);
 

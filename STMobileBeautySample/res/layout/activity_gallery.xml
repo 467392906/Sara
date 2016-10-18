@@ -1,8 +1,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#000000"
-    android:orientation="vertical">
+    android:background="@android:color/transparent">
 
      <android.opengl.GLSurfaceView
         android:id="@+id/glsurfaceview_image"
@@ -11,17 +10,6 @@
         android:layout_above="@+id/gallery_choosetools"
      />  
      
-   <TextView
-            android:id="@+id/gallery_save"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginRight="10dp"
-            android:textSize="24dp"
-            android:background="#30ffffff"
-            android:text="@string/save"
-            android:textColor="@android:color/black" />
     <TextView
             android:id="@+id/saveing_info"
             android:layout_width="wrap_content"
@@ -31,28 +19,7 @@
             android:textSize="15dp"
             android:textColor="#0000f0"
             android:text="@string/saving" />
-    
-     <Button
-            android:id="@+id/gallery_compare"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_above="@+id/gallery_beautylevel"
-            android:layout_marginRight="10dp"
-            android:text="@string/compare"
-            android:textSize="20dp"
-            android:textColor="@android:color/black" />
-      
-    <LinearLayout
-        android:id="@+id/gallery_beautylevel"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:layout_alignParentBottom="true" 
-        android:layout_marginBottom="10dp"
-        android:fillViewport="true"
-        android:background="#30ffffff"
-        android:orientation="horizontal">
-    </LinearLayout>>
+     
+    <include layout="@layout/activity_common"/>  
 
 </RelativeLayout>

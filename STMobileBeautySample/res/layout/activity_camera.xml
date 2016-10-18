@@ -51,41 +51,7 @@
               android:layout_marginLeft="5dp"
               android:textSize="15dp"
               android:text="0"/>
-    </LinearLayout>
-    
-    <TextView
-            android:id="@+id/capture"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_alignParentTop="true"
-            android:layout_marginRight="10dp"
-            android:text="@string/capture"
-            android:background="#30ffffff"
-            android:textSize="24dp"
-            android:textColor="@android:color/black" />
-    
-     <Button
-            android:id="@+id/compare"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:layout_alignParentRight="true"
-            android:layout_above="@+id/beautify_level"
-            android:layout_marginRight="10dp"
-            android:text="@string/compare"
-            android:textSize="20dp"
-            android:textColor="@android:color/black" />
+    </LinearLayout>     
         
-    <LinearLayout
-        android:id="@+id/beautify_level"
-        android:layout_width="fill_parent"
-        android:layout_height="wrap_content"
-        android:layout_gravity="center_vertical"
-        android:layout_alignParentBottom="true" 
-        android:layout_marginBottom="10dp"
-        android:fillViewport="true"
-        android:background="#30ffffff"
-        android:orientation="horizontal">
-
-    </LinearLayout>
+    <include layout="@layout/activity_common"/>
 </RelativeLayout>
